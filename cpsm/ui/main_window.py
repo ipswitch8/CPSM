@@ -996,6 +996,8 @@ class MainWindow(QMainWindow):
         cat = self._session_list._cat_connections
         for i in range(cat.childCount()):
             item = cat.child(i)
+            if item is None:
+                continue
             conn_id: str = item.data(0, Qt.ItemDataRole.UserRole) or ""
             if not conn_id or conn_id == "_separator":
                 continue
@@ -2872,6 +2874,8 @@ class MainWindow(QMainWindow):
         cat_connections = self._session_list._cat_connections
         for i in range(cat_connections.childCount()):
             item = cat_connections.child(i)
+            if item is None:
+                continue
             conn_id = item.data(0, Qt.ItemDataRole.UserRole) or ""
             if conn_id == "_separator":
                 continue
@@ -2896,6 +2900,8 @@ class MainWindow(QMainWindow):
         normal_font = QFont()
         for i in range(cat_groups.childCount()):
             item = cat_groups.child(i)
+            if item is None:
+                continue
             grp_id = item.data(0, Qt.ItemDataRole.UserRole) or ""
             if grp_id == active:
                 item.setForeground(0, member_color)
@@ -5628,6 +5634,8 @@ class MainWindow(QMainWindow):
         cat = self._session_list._cat_connections
         for i in range(cat.childCount()):
             item = cat.child(i)
+            if item is None:
+                continue
             if item.data(0, Qt.ItemDataRole.UserRole) == connection_id:
                 self._session_list.tree.setCurrentItem(item)
                 # Belt-and-suspenders: in case currentItemChanged isn't

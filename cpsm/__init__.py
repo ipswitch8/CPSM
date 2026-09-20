@@ -18,9 +18,13 @@ def _source_root() -> Path:
 def _read_stamp() -> str:
     """The commit recorded at package time, or "" if there is no stamp."""
     try:
-        from cpsm import _build_stamp
+        # Imported dynamically: cpsm/_build_stamp.py is generated at package
+        # time and is gitignored, so it does not exist in a source checkout.
+        # A static import is unresolvable there and mypy rightly objects.
+        import importlib
 
-        return str(getattr(_build_stamp, "COMMIT", "") or "")
+        stamp = importlib.import_module("cpsm._build_stamp")
+        return str(getattr(stamp, "COMMIT", "") or "")
     except Exception:
         return ""
 
