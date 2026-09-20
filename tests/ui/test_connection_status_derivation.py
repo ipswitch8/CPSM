@@ -12,11 +12,10 @@ from datetime import UTC, datetime
 
 import pytest
 
-from cpsm.workers.status_poller import PaneState, PaneStatus
-
 # Import the helper directly. We avoid spinning up a QApplication just to
 # test pure-function logic.
 from cpsm.ui.main_window import _derive_external_status
+from cpsm.workers.status_poller import PaneState, PaneStatus
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 

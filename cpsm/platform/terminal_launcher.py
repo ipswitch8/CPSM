@@ -164,17 +164,21 @@ def _wmctrl_place_async(
     if shutil.which("wmctrl") is None:
         return
     import threading
+
     x, y, w, h = geometry
 
     def _place() -> None:
         import time as _time
+
         wid: str | None = None
         for _ in range(20):  # up to ~2 s total
             _time.sleep(0.1)
             try:
                 out = subprocess.run(
                     ["wmctrl", "-l"],
-                    capture_output=True, text=True, timeout=2,
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
                     env=child_env(),
                 ).stdout
             except Exception:
@@ -189,6 +193,7 @@ def _wmctrl_place_async(
         if wid is None:
             return
         import contextlib
+
         with contextlib.suppress(Exception):
             subprocess.run(
                 ["wmctrl", "-i", "-r", wid, "-e", f"0,{x},{y},{w},{h}"],
@@ -204,6 +209,7 @@ def _unique_token(prefix: str) -> str:
     """Return a short unique ASCII token used to identify a freshly-spawned
     window in ``wmctrl -l`` output (or via WM_CLASS instance)."""
     import uuid as _uuid
+
     return f"{prefix}-{_uuid.uuid4().hex[:8]}"
 
 
@@ -258,10 +264,14 @@ class AlacrittyLauncher(TerminalLauncher):
             cols = max(20, int(w / 8))
             rows = max(5, int(h / 16))
             cmd += [
-                "--option", f"window.position.x={x}",
-                "--option", f"window.position.y={y}",
-                "--option", f"window.dimensions.columns={cols}",
-                "--option", f"window.dimensions.lines={rows}",
+                "--option",
+                f"window.position.x={x}",
+                "--option",
+                f"window.position.y={y}",
+                "--option",
+                f"window.dimensions.columns={cols}",
+                "--option",
+                f"window.dimensions.lines={rows}",
             ]
         cmd += ["-e", *argv]
         proc = subprocess.Popen(cmd, cwd=cwd, close_fds=True, env=child_env())
@@ -343,9 +353,8 @@ class GnomeTerminalLauncher(TerminalLauncher):
         # Use a unique title suffix so wmctrl can pick our window out of
         # the list. The user's title remains as a prefix.
         import uuid as _uuid
-        unique = f"{title} #{_uuid.uuid4().hex[:6]}" if title else (
-            f"cpsm-{_uuid.uuid4().hex[:8]}"
-        )
+
+        unique = f"{title} #{_uuid.uuid4().hex[:6]}" if title else (f"cpsm-{_uuid.uuid4().hex[:8]}")
         cmd: list[str] = ["gnome-terminal", "--title", unique, "--", *argv]
         proc = subprocess.Popen(cmd, cwd=cwd, close_fds=True, env=child_env())
         if geometry is not None:

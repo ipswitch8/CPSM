@@ -541,7 +541,8 @@ class TestRemoteControl:
         form.show()
         form.load_data(_CONN_REMOTE)
         with qtbot.waitSignal(
-            form.remote_control_auth_requested, timeout=500,
+            form.remote_control_auth_requested,
+            timeout=500,
         ):
             form._btn_setup_remote_control.click()
 
@@ -703,7 +704,10 @@ def test_test_connection_ssh_calls_factory_for_remote(qtbot):
         on_result(True, "")
 
     dlg = _make_dlg(
-        qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_test_factory=fake_factory,
+        qtbot,
+        conn_data=_CONN_REMOTE,
+        is_new=False,
+        ssh_test_factory=fake_factory,
         ssh_keys=[_KEY_PROD],
     )
     dlg._form._edit_host.setText("dev.example.com")
@@ -721,7 +725,10 @@ def test_test_connection_ssh_calls_factory_for_ssh_shell(qtbot):
         on_result(True, "")
 
     dlg = _make_dlg(
-        qtbot, conn_data=_CONN_SSH, is_new=False, ssh_test_factory=fake_factory,
+        qtbot,
+        conn_data=_CONN_SSH,
+        is_new=False,
+        ssh_test_factory=fake_factory,
         ssh_keys=[_KEY_PROD],
     )
     dlg._on_test_connection()
@@ -776,7 +783,10 @@ def test_test_connection_ssh_result_success_shows_check(qtbot):
         on_result(True, "")
 
     dlg = _make_dlg(
-        qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_test_factory=factory,
+        qtbot,
+        conn_data=_CONN_REMOTE,
+        is_new=False,
+        ssh_test_factory=factory,
         ssh_keys=[_KEY_PROD],
     )
     dlg._on_test_connection()
@@ -788,7 +798,10 @@ def test_test_connection_ssh_result_failure_shows_x(qtbot):
         on_result(False, "Connection refused")
 
     dlg = _make_dlg(
-        qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_test_factory=factory,
+        qtbot,
+        conn_data=_CONN_REMOTE,
+        is_new=False,
+        ssh_test_factory=factory,
         ssh_keys=[_KEY_PROD],
     )
     dlg._on_test_connection()
@@ -944,8 +957,7 @@ class TestPreviewResolvesIdentityKey:
         """The guard must still speak up when the key genuinely is not there."""
         from cpsm.services.template_service import TemplateService
 
-        dlg = _make_dlg(qtbot, ssh_keys=[self._key(tmp_path)],
-                        template_service=TemplateService())
+        dlg = _make_dlg(qtbot, ssh_keys=[self._key(tmp_path)], template_service=TemplateService())
         dlg._run_custom_preview(
             {
                 "id": "c1",
@@ -1230,8 +1242,7 @@ class TestKeyIdSourceOfTruth:
         shown = [combo.itemText(i) for i in range(combo.count())]
 
         assert shown == ["key-from-document"], (
-            "ssh_keys must be the sole source of truth for the identity combo; "
-            f"got {shown!r}"
+            f"ssh_keys must be the sole source of truth for the identity combo; got {shown!r}"
         )
         assert "legacy-id-a" not in shown
         assert "legacy-id-b" not in shown
@@ -1285,8 +1296,10 @@ class TestResolveIdentityPath:
 
     def test_valid_ref_expands_tilde(self, qtbot) -> None:
         key = SshKey(
-            id="key-a", name="Key A",
-            private_path="~/.ssh/id_ed25519_a", public_path="~/.ssh/id_ed25519_a.pub",
+            id="key-a",
+            name="Key A",
+            private_path="~/.ssh/id_ed25519_a",
+            public_path="~/.ssh/id_ed25519_a.pub",
         )
         dlg = _make_dlg(qtbot, ssh_keys=[key])
         resolved = dlg._resolve_identity_path("key-a")
@@ -1311,8 +1324,10 @@ class TestTestConnectionResolvesRefBeforeDiscovery:
 
     def test_valid_ref_passes_resolved_path_to_factory(self, qtbot) -> None:
         key = SshKey(
-            id="key-prod", name="Prod",
-            private_path="/home/user/.ssh/prodkey", public_path="/home/user/.ssh/prodkey.pub",
+            id="key-prod",
+            name="Prod",
+            private_path="/home/user/.ssh/prodkey",
+            public_path="/home/user/.ssh/prodkey.pub",
         )
         calls = []
 
@@ -1322,8 +1337,11 @@ class TestTestConnectionResolvesRefBeforeDiscovery:
 
         discovery = MagicMock()
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False,
-            ssh_keys=[key], ssh_test_factory=fake_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[key],
+            ssh_test_factory=fake_factory,
             key_discovery_service=discovery,
         )
         dlg._on_test_connection()
@@ -1340,14 +1358,18 @@ class TestNoRefOrDanglingRefFallsThroughToDiscovery:
 
         conn = {**_CONN_REMOTE, "identity_file_ref": None}
         dlg = _make_dlg(
-            qtbot, conn_data=conn, is_new=False, ssh_keys=[],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=conn,
+            is_new=False,
+            ssh_keys=[],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
         )
         dlg._form._combo_identity_file_ref.setCurrentText("")
         dlg._on_test_connection()
 
         discovery.discover.assert_called_once()
-        _, kwargs = discovery.discover.call_args
+        _, _kwargs = discovery.discover.call_args
         assert discovery.discover.call_args[0][0] == "dev.example.com"
 
     def test_dangling_ref_triggers_discovery(self, qtbot) -> None:
@@ -1355,7 +1377,10 @@ class TestNoRefOrDanglingRefFallsThroughToDiscovery:
         discovery.discover.return_value = []
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
             key_discovery_service=discovery,
         )
         dlg._on_test_connection()
@@ -1368,8 +1393,12 @@ class TestNoRefOrDanglingRefFallsThroughToDiscovery:
         probe_factory = MagicMock()
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
         )
         dlg._on_test_connection()
 
@@ -1414,8 +1443,12 @@ class TestDiscoveryProbeOrdering:
             captured["candidates"] = candidates
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
         )
         dlg._on_test_connection()
 
@@ -1442,8 +1475,12 @@ class TestAutoPinConfirmFlow:
             return True
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
             confirm_pin_fn=confirm_fn,
         )
         dlg._on_test_connection()
@@ -1468,8 +1505,10 @@ class TestAutoPinConfirmFlow:
         pins the wiring down.
         """
         candidate = _make_candidate(
-            tmp_path, "legacy_host_key",
-            source="pub_comment_user_host", comment="root@192.0.2.44",
+            tmp_path,
+            "legacy_host_key",
+            source="pub_comment_user_host",
+            comment="root@192.0.2.44",
         )
         assert candidate.public_path is not None
         candidate.public_path.write_text(
@@ -1483,8 +1522,12 @@ class TestAutoPinConfirmFlow:
             on_result(candidates[0])
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
             confirm_pin_fn=lambda parent, cand: True,
         )
         dlg._on_test_connection()
@@ -1505,8 +1548,12 @@ class TestAutoPinConfirmFlow:
             on_result(candidates[0])
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
             confirm_pin_fn=lambda parent, cand: False,
         )
 
@@ -1533,8 +1580,12 @@ class TestAutoPinConfirmFlow:
             on_result(None)
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
             confirm_pin_fn=confirm_fn,
         )
         dlg._on_test_connection()
@@ -1547,7 +1598,8 @@ class TestAutoPinConfirmFlow:
     def test_candidate_already_in_ssh_keys_is_not_duplicated(self, qtbot, tmp_path) -> None:
         candidate = _make_candidate(tmp_path, "utility")
         existing_key = SshKey(
-            id="already-here", name="Already here",
+            id="already-here",
+            name="Already here",
             private_path=str(candidate.private_path),
             public_path=str(candidate.public_path),
         )
@@ -1558,8 +1610,12 @@ class TestAutoPinConfirmFlow:
             on_result(candidates[0])
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[existing_key],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[existing_key],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
             confirm_pin_fn=lambda parent, cand: True,
         )
         dlg._on_test_connection()
@@ -1582,7 +1638,6 @@ class TestAutoPinConfirmFlow:
             on_result(candidates[0])
 
         captured_boxes = []
-        real_exec = QMessageBox.exec
 
         def fake_exec(self):
             captured_boxes.append(self)
@@ -1591,8 +1646,12 @@ class TestAutoPinConfirmFlow:
         monkeypatch.setattr(QMessageBox, "exec", fake_exec)
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
-            key_discovery_service=discovery, key_probe_factory=probe_factory,
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
+            key_discovery_service=discovery,
+            key_probe_factory=probe_factory,
         )
         dlg._on_test_connection()
 
@@ -1631,8 +1690,10 @@ class TestRemoteControlKeyPathResolvesViaSshKeys:
     def test_resolves_pinned_key_to_its_private_path(self, qtbot, monkeypatch) -> None:
         captured = self._install_fake_rc_dialog(monkeypatch)
         key = SshKey(
-            id="key-prod", name="Prod",
-            private_path="/home/user/.ssh/prodkey", public_path="/home/user/.ssh/prodkey.pub",
+            id="key-prod",
+            name="Prod",
+            private_path="/home/user/.ssh/prodkey",
+            public_path="/home/user/.ssh/prodkey.pub",
         )
         dlg = _make_dlg(qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[key])
         dlg._on_remote_control_auth_requested()
@@ -1752,9 +1813,7 @@ class TestDiscoveredKeyTypeInference:
         finally:
             candidate.public_path.chmod(0o644)
 
-    def test_private_key_is_never_opened_while_inferring(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    def test_private_key_is_never_opened_while_inferring(self, tmp_path, monkeypatch) -> None:
         """Inference must not read private key material to decide a type."""
         candidate = self._candidate(tmp_path, "id_rsa", "ssh-rsa")
 
@@ -1806,17 +1865,16 @@ class TestKeyProbeFallbackIsGuarded:
 
     def test_uninjected_discovery_is_caught_not_silently_real(self, qtbot) -> None:
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
             # key_discovery_service / key_probe_factory deliberately NOT injected.
         )
         with pytest.raises(AssertionError, match="real KeyDiscoveryService"):
-            dlg._run_discovery_and_probe(
-                host="no-such-host.invalid", user="root", port=22
-            )
+            dlg._run_discovery_and_probe(host="no-such-host.invalid", user="root", port=22)
 
-    def test_uninjected_probe_task_is_caught_not_silently_real(
-        self, qtbot, tmp_path
-    ) -> None:
+    def test_uninjected_probe_task_is_caught_not_silently_real(self, qtbot, tmp_path) -> None:
         """Discovery injected, probe not — the probe half must intercept.
 
         Without this, the test above would pass on the discovery guard alone
@@ -1828,13 +1886,14 @@ class TestKeyProbeFallbackIsGuarded:
         discovery.discover.return_value = [candidate]
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
             key_discovery_service=discovery,
             # key_probe_factory deliberately NOT injected.
         )
-        dlg._run_discovery_and_probe(
-            host="no-such-host.invalid", user="root", port=22
-        )
+        dlg._run_discovery_and_probe(host="no-such-host.invalid", user="root", port=22)
 
         assert "real KeyDiscoveryProbeTask" in dlg._lbl_test_result.text(), (
             "the probe guard did not intercept — a real ssh subprocess would "
@@ -1867,7 +1926,10 @@ class TestProbeResultAfterDialogGone:
             return True
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
             confirm_pin_fn=confirm_fn,
         )
         dlg.close()
@@ -1899,7 +1961,10 @@ class TestProbeResultAfterDialogGone:
             return True
 
         dlg = _make_dlg(
-            qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
+            qtbot,
+            conn_data=_CONN_REMOTE,
+            is_new=False,
+            ssh_keys=[],
             confirm_pin_fn=confirm_fn,
         )
         handler = dlg._on_key_probe_result
@@ -2015,9 +2080,7 @@ class TestEndToEndNewConnectionNewKeyTestConnection:
         # TestNewKeyPersistedOnSave; here it is the REAL dialog end to end.
         assert [k.id for k in dlg.new_ssh_keys] == ["key-journey"]
 
-    def test_journey_persists_through_main_window_open_connection_editor(
-        self, qtbot
-    ) -> None:
+    def test_journey_persists_through_main_window_open_connection_editor(self, qtbot) -> None:
         """Same journey, one layer further out: run it through the REAL
         ConnectionEditorDialog (not a stub, unlike TestNewKeyPersistedOnSave)
         and feed its output into the REAL, unbound
@@ -2084,9 +2147,7 @@ class TestEndToEndNewConnectionNewKeyTestConnection:
             MainWindow._open_connection_editor(stand, None)
 
         assert any(k.id == "key-journey-2" for k in stand._document.ssh_keys)
-        conn = next(
-            (c for c in stand._document.connections if c.id == "journey-two"), None
-        )
+        conn = next((c for c in stand._document.connections if c.id == "journey-two"), None)
         assert conn is not None
         assert conn.identity_file_ref == "key-journey-2"
         assert stand.save_document_calls == 1
@@ -2182,13 +2243,15 @@ class TestEndToEndDiscoveryTriggeredAutoPin:
 
         assert confirmations == [candidate]
         pinned = next(
-            (k for k in stand._document.ssh_keys if str(k.private_path) == str(candidate.private_path)),
+            (
+                k
+                for k in stand._document.ssh_keys
+                if str(k.private_path) == str(candidate.private_path)
+            ),
             None,
         )
         assert pinned is not None, "confirmed discovery pin never reached document.ssh_keys"
-        conn = next(
-            (c for c in stand._document.connections if c.id == "discovered-conn"), None
-        )
+        conn = next((c for c in stand._document.connections if c.id == "discovered-conn"), None)
         assert conn is not None
         assert conn.identity_file_ref == pinned.id
         assert stand.save_document_calls == 1
@@ -2238,7 +2301,6 @@ class TestAccessibleDescriptionsDoNotClaimUnfinishedWork:
             on_result(candidates[0])
 
         captured_boxes: list[Any] = []
-        real_exec = QMessageBox.exec
 
         def fake_exec(self):
             captured_boxes.append(self)
@@ -2247,8 +2309,12 @@ class TestAccessibleDescriptionsDoNotClaimUnfinishedWork:
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(QMessageBox, "exec", fake_exec)
             dlg = _make_dlg(
-                qtbot, conn_data=_CONN_REMOTE, is_new=False, ssh_keys=[],
-                key_discovery_service=discovery, key_probe_factory=probe_factory,
+                qtbot,
+                conn_data=_CONN_REMOTE,
+                is_new=False,
+                ssh_keys=[],
+                key_discovery_service=discovery,
+                key_probe_factory=probe_factory,
             )
             dlg._on_test_connection()
 

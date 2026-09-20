@@ -37,7 +37,6 @@ from cpsm.services.discovery_service import (
     wait_for_pid_exit,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -60,9 +59,7 @@ def _proc(
     cwd: str = "",
     tty: str = "",
 ) -> ProcInfo:
-    return ProcInfo(
-        pid=pid, ppid=ppid, comm=comm, cmdline=cmdline, cwd=cwd, tty=tty
-    )
+    return ProcInfo(pid=pid, ppid=ppid, comm=comm, cmdline=cmdline, cwd=cwd, tty=tty)
 
 
 def _empty_doc() -> CpsmDocument:
@@ -125,8 +122,16 @@ class TestParseSshArgs:
 
     def test_skip_options_with_values(self) -> None:
         host, user = _parse_ssh_args(
-            ("ssh", "-i", "/key", "-p", "2222", "-o", "StrictHostKeyChecking=no",
-             "ubuntu@example.com")
+            (
+                "ssh",
+                "-i",
+                "/key",
+                "-p",
+                "2222",
+                "-o",
+                "StrictHostKeyChecking=no",
+                "ubuntu@example.com",
+            )
         )
         assert host == "example.com"
         assert user == "ubuntu"
@@ -139,16 +144,12 @@ class TestParseSshArgs:
     def test_scp_remote_path_does_not_corrupt_host(self) -> None:
         """scp argv embeds remote paths as ``user@host:/path/file``; the host
         field must not include the ``:/path`` suffix."""
-        host, user = _parse_ssh_args(
-            ("scp", "ubuntu@dev.example.com:/tmp/file", "./local")
-        )
+        host, user = _parse_ssh_args(("scp", "ubuntu@dev.example.com:/tmp/file", "./local"))
         assert host == "dev.example.com"
         assert user == "ubuntu"
 
     def test_scp_bare_host_with_remote_path(self) -> None:
-        host, user = _parse_ssh_args(
-            ("scp", "dev.example.com:/etc/hosts", "./hosts")
-        )
+        host, user = _parse_ssh_args(("scp", "dev.example.com:/etc/hosts", "./hosts"))
         assert host == "dev.example.com"
         assert user == ""
 
@@ -162,9 +163,7 @@ class TestSshArgsInvokeClaude:
 
     def test_remote_bash_with_claude(self) -> None:
         # Real-world: ssh ... bash -ic 'cd /x && claude'
-        assert _ssh_args_invoke_claude(
-            ("ssh", "host", "bash", "-ic", "cd /x && claude --resume")
-        )
+        assert _ssh_args_invoke_claude(("ssh", "host", "bash", "-ic", "cd /x && claude --resume"))
 
 
 # ---------------------------------------------------------------------------
@@ -182,17 +181,13 @@ class TestHasTmuxAncestor:
         tmux = _proc(100, ppid=1, comm="tmux: server")
         bash = _proc(150, ppid=100, comm="bash")
         claude = _proc(200, ppid=150, comm="claude")
-        assert _has_tmux_ancestor(
-            claude, {100: tmux, 150: bash, 200: claude}
-        )
+        assert _has_tmux_ancestor(claude, {100: tmux, 150: bash, 200: claude})
 
     def test_no_tmux_ancestor(self) -> None:
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         bash = _proc(150, ppid=100, comm="bash")
         claude = _proc(200, ppid=150, comm="claude")
-        assert not _has_tmux_ancestor(
-            claude, {100: gnome, 150: bash, 200: claude}
-        )
+        assert not _has_tmux_ancestor(claude, {100: gnome, 150: bash, 200: claude})
 
     def test_orphan_chain_terminates(self) -> None:
         """If the parent map is missing entries (e.g. parent already exited),
@@ -211,14 +206,14 @@ class TestFindOutsideSessions:
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         bash = _proc(150, ppid=100, comm="bash")
         claude = _proc(
-            200, ppid=150, comm="claude",
+            200,
+            ppid=150,
+            comm="claude",
             cmdline=("claude", "--resume"),
             cwd="/home/user/projects/dotfiles",
             tty="/dev/pts/3",
         )
-        svc = DiscoveryService(
-            proc_source=_FakeProcSource([gnome, bash, claude])
-        )
+        svc = DiscoveryService(proc_source=_FakeProcSource([gnome, bash, claude]))
         sessions = svc.find_outside_sessions(_empty_doc())
 
         assert len(sessions) == 1
@@ -232,12 +227,8 @@ class TestFindOutsideSessions:
     def test_excludes_claude_inside_tmux(self) -> None:
         tmux = _proc(100, ppid=1, comm="tmux: server")
         bash = _proc(150, ppid=100, comm="bash")
-        claude = _proc(
-            200, ppid=150, comm="claude", cmdline=("claude",)
-        )
-        svc = DiscoveryService(
-            proc_source=_FakeProcSource([tmux, bash, claude])
-        )
+        claude = _proc(200, ppid=150, comm="claude", cmdline=("claude",))
+        svc = DiscoveryService(proc_source=_FakeProcSource([tmux, bash, claude]))
         sessions = svc.find_outside_sessions(_empty_doc())
         assert sessions == []
 
@@ -245,7 +236,9 @@ class TestFindOutsideSessions:
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         bash = _proc(150, ppid=100, comm="bash")
         ssh = _proc(
-            200, ppid=150, comm="ssh",
+            200,
+            ppid=150,
+            comm="ssh",
             cmdline=("ssh", "ubuntu@dev.example.com", "claude", "--resume"),
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, bash, ssh]))
@@ -260,7 +253,9 @@ class TestFindOutsideSessions:
     def test_classifies_ssh_without_remote_claude_as_ssh_shell(self) -> None:
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         ssh = _proc(
-            200, ppid=100, comm="ssh",
+            200,
+            ppid=100,
+            comm="ssh",
             cmdline=("ssh", "ubuntu@dev.example.com"),
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, ssh]))
@@ -275,37 +270,31 @@ class TestFindOutsideSessions:
         adoption candidates)."""
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         bogus = _proc(
-            201, ppid=100, comm="claude-test",
+            201,
+            ppid=100,
+            comm="claude-test",
             cmdline=("claude-test", "--flag"),
             cwd="/tmp",
         )
         also_bogus = _proc(
-            202, ppid=100, comm="claude-helper",
+            202,
+            ppid=100,
+            comm="claude-helper",
             cmdline=("claude-helper",),
             cwd="/tmp",
         )
-        svc = DiscoveryService(
-            proc_source=_FakeProcSource([gnome, bogus, also_bogus])
-        )
+        svc = DiscoveryService(proc_source=_FakeProcSource([gnome, bogus, also_bogus]))
         assert svc.find_outside_sessions(_empty_doc()) == []
 
     def test_skips_kernel_threads_and_unrelated_processes(self) -> None:
         kthreadd = _proc(2, ppid=0, comm="kthreadd", cmdline=())
-        firefox = _proc(
-            300, ppid=1, comm="firefox", cmdline=("firefox", "--profile")
-        )
-        svc = DiscoveryService(
-            proc_source=_FakeProcSource([kthreadd, firefox])
-        )
+        firefox = _proc(300, ppid=1, comm="firefox", cmdline=("firefox", "--profile"))
+        svc = DiscoveryService(proc_source=_FakeProcSource([kthreadd, firefox]))
         assert svc.find_outside_sessions(_empty_doc()) == []
 
     def test_results_are_sorted_deterministically(self) -> None:
-        c2 = _proc(
-            500, ppid=1, comm="claude", cmdline=("claude",), cwd="/b"
-        )
-        c1 = _proc(
-            300, ppid=1, comm="claude", cmdline=("claude",), cwd="/a"
-        )
+        c2 = _proc(500, ppid=1, comm="claude", cmdline=("claude",), cwd="/b")
+        c1 = _proc(300, ppid=1, comm="claude", cmdline=("claude",), cwd="/a")
         svc = DiscoveryService(proc_source=_FakeProcSource([c2, c1]))
         sessions = svc.find_outside_sessions(_empty_doc())
         # Sort key is (kind, pid) — both claude-local, so by pid ascending.
@@ -368,8 +357,11 @@ class TestMatching:
 
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         claude = _proc(
-            200, ppid=100, comm="claude",
-            cmdline=("claude",), cwd=str(target),
+            200,
+            ppid=100,
+            comm="claude",
+            cmdline=("claude",),
+            cwd=str(target),
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, claude]))
         sessions = svc.find_outside_sessions(doc)
@@ -386,8 +378,11 @@ class TestMatching:
 
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         claude = _proc(
-            200, ppid=100, comm="claude",
-            cmdline=("claude",), cwd=str(proj_b),  # different folder
+            200,
+            ppid=100,
+            comm="claude",
+            cmdline=("claude",),
+            cwd=str(proj_b),  # different folder
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, claude]))
         sessions = svc.find_outside_sessions(doc)
@@ -398,7 +393,9 @@ class TestMatching:
         doc = _doc_with_remote_conn("dev.example.com", "ubuntu")
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         ssh = _proc(
-            200, ppid=100, comm="ssh",
+            200,
+            ppid=100,
+            comm="ssh",
             cmdline=("ssh", "ubuntu@dev.example.com", "claude"),
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, ssh]))
@@ -407,12 +404,12 @@ class TestMatching:
         assert sessions[0].suggested_connection_id == "web01"
 
     def test_ssh_shell_matched_by_host_user_with_correct_profile(self) -> None:
-        doc = _doc_with_remote_conn(
-            "dev.example.com", "ubuntu", profile="ssh-shell"
-        )
+        doc = _doc_with_remote_conn("dev.example.com", "ubuntu", profile="ssh-shell")
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         ssh = _proc(
-            200, ppid=100, comm="ssh",
+            200,
+            ppid=100,
+            comm="ssh",
             cmdline=("ssh", "ubuntu@dev.example.com"),  # no remote claude
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, ssh]))
@@ -425,7 +422,9 @@ class TestMatching:
         doc = _doc_with_remote_conn("prod.example.com", "ubuntu")
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         ssh = _proc(
-            200, ppid=100, comm="ssh",
+            200,
+            ppid=100,
+            comm="ssh",
             cmdline=("ssh", "ubuntu@dev.example.com", "claude"),
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, ssh]))
@@ -438,11 +437,12 @@ class TestMatching:
         user might just have an interactive SSH terminal to a host they've
         configured for claude-remote launches.
         """
-        doc = _doc_with_remote_conn("dev.example.com", "ubuntu",
-                                     profile="claude-remote")
+        doc = _doc_with_remote_conn("dev.example.com", "ubuntu", profile="claude-remote")
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         ssh = _proc(
-            200, ppid=100, comm="ssh",
+            200,
+            ppid=100,
+            comm="ssh",
             cmdline=("ssh", "ubuntu@dev.example.com"),  # no claude in argv
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, ssh]))
@@ -459,31 +459,35 @@ class TestMatching:
         host+user, we should prefer the same-profile one."""
         # Build two connections to the same host: one of each profile.
         key = SshKey(
-            id="key-prod", name="prod", type="ed25519",
+            id="key-prod",
+            name="prod",
+            type="ed25519",
             private_path="~/.ssh/id_ed25519_prod",
             public_path="~/.ssh/id_ed25519_prod.pub",
         )
         claude_remote_conn = ClaudeRemoteConnection(
-            id="web-claude", name="WebApp Claude",
+            id="web-claude",
+            name="WebApp Claude",
             launch_profile="claude-remote",
-            host="dev.example.com", user="ubuntu",
+            host="dev.example.com",
+            user="ubuntu",
             identity_file_ref="key-prod",
             project_folder="/opt/app",
             claude_options="",
         )
         ssh_shell_conn = SshShellConnection(
-            id="web-shell", name="WebApp Shell",
+            id="web-shell",
+            name="WebApp Shell",
             launch_profile="ssh-shell",
-            host="dev.example.com", user="ubuntu",
+            host="dev.example.com",
+            user="ubuntu",
             identity_file_ref="key-prod",
         )
-        doc = CpsmDocument(ssh_keys=[key],
-                            connections=[claude_remote_conn, ssh_shell_conn])
+        doc = CpsmDocument(ssh_keys=[key], connections=[claude_remote_conn, ssh_shell_conn])
 
         # Plain ssh argv → kind=ssh-shell. Should match ssh-shell Connection.
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
-        ssh = _proc(200, ppid=100, comm="ssh",
-                    cmdline=("ssh", "ubuntu@dev.example.com"))
+        ssh = _proc(200, ppid=100, comm="ssh", cmdline=("ssh", "ubuntu@dev.example.com"))
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, ssh]))
         sessions = svc.find_outside_sessions(doc)
         assert sessions[0].kind == "ssh-shell"
@@ -494,7 +498,9 @@ class TestMatching:
         doc = _doc_with_remote_conn("dev.example.com", "ubuntu")
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         ssh = _proc(
-            200, ppid=100, comm="ssh",
+            200,
+            ppid=100,
+            comm="ssh",
             cmdline=("ssh", "dev.example.com", "claude"),  # no user
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, ssh]))
@@ -509,39 +515,45 @@ class TestMatching:
         session whose actual project differed from candidate #1.
         """
         key = SshKey(
-            id="key-prod", name="prod", type="ed25519",
+            id="key-prod",
+            name="prod",
+            type="ed25519",
             private_path="~/.ssh/id_ed25519_prod",
             public_path="~/.ssh/id_ed25519_prod.pub",
         )
         conn_a = ClaudeRemoteConnection(
-            id="email-engine", name="Email Engine",
+            id="email-engine",
+            name="Email Engine",
             launch_profile="claude-remote",
-            host="192.0.2.44", user="root",
+            host="192.0.2.44",
+            user="root",
             identity_file_ref="key-prod",
             project_folder="/opt/email_engine",
             claude_options="",
         )
         conn_b = ClaudeRemoteConnection(
-            id="rmm-server", name="RMM Server",
+            id="rmm-server",
+            name="RMM Server",
             launch_profile="claude-remote",
-            host="192.0.2.44", user="root",
+            host="192.0.2.44",
+            user="root",
             identity_file_ref="key-prod",
             project_folder="/opt/rmm",
             claude_options="",
         )
         conn_c = ClaudeRemoteConnection(
-            id="other-app", name="Other App",
+            id="other-app",
+            name="Other App",
             launch_profile="claude-remote",
-            host="192.0.2.44", user="root",
+            host="192.0.2.44",
+            user="root",
             identity_file_ref="key-prod",
             project_folder="/opt/other",
             claude_options="",
         )
-        doc = CpsmDocument(ssh_keys=[key],
-                            connections=[conn_a, conn_b, conn_c])
+        doc = CpsmDocument(ssh_keys=[key], connections=[conn_a, conn_b, conn_c])
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
-        ssh = _proc(200, ppid=100, comm="ssh",
-                    cmdline=("ssh", "root@192.0.2.44", "claude"))
+        ssh = _proc(200, ppid=100, comm="ssh", cmdline=("ssh", "root@192.0.2.44", "claude"))
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, ssh]))
         sessions = svc.find_outside_sessions(doc)
         assert len(sessions) == 1
@@ -561,8 +573,11 @@ class TestFindForConnection:
         doc = _doc_with_local_conn(str(target))
         gnome = _proc(100, ppid=1, comm="gnome-terminal-")
         claude = _proc(
-            200, ppid=100, comm="claude",
-            cmdline=("claude",), cwd=str(target),
+            200,
+            ppid=100,
+            comm="claude",
+            cmdline=("claude",),
+            cwd=str(target),
         )
         svc = DiscoveryService(proc_source=_FakeProcSource([gnome, claude]))
 
@@ -661,7 +676,9 @@ class TestWaitForPidExit:
         # A bogus pid is "already dead" — the helper should bail in 0 polls.
         sleep_calls: list[float] = []
         ok = wait_for_pid_exit(
-            2_147_483_640, timeout_s=1.0, poll_interval_s=0.1,
+            2_147_483_640,
+            timeout_s=1.0,
+            poll_interval_s=0.1,
             sleep=sleep_calls.append,
         )
         assert ok is True
@@ -672,7 +689,9 @@ class TestWaitForPidExit:
         sleep_calls: list[float] = []
         # Use the test process itself — it stays alive for the duration.
         ok = wait_for_pid_exit(
-            os.getpid(), timeout_s=0.4, poll_interval_s=0.1,
+            os.getpid(),
+            timeout_s=0.4,
+            poll_interval_s=0.1,
             sleep=sleep_calls.append,
         )
         assert ok is False

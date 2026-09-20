@@ -24,17 +24,22 @@ from cpsm.services.discovery_service import DiscoveredSession
 from cpsm.ui.dialogs.launch_conflict import LaunchConflictDialog
 from cpsm.ui.main_window import MainWindow
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _ds(pid: int, kind: str = "claude-local",
-        cwd: str = "/tmp/p", host: str = "", user: str = "") -> DiscoveredSession:
+def _ds(
+    pid: int, kind: str = "claude-local", cwd: str = "/tmp/p", host: str = "", user: str = ""
+) -> DiscoveredSession:
     return DiscoveredSession(
-        pid=pid, kind=kind, cmdline=f"{kind}",
-        cwd=cwd, host=host, user=user, tty="/dev/pts/0",
+        pid=pid,
+        kind=kind,
+        cmdline=f"{kind}",
+        cwd=cwd,
+        host=host,
+        user=user,
+        tty="/dev/pts/0",
         suggested_connection_id="",
     )
 
@@ -60,10 +65,12 @@ class TestLaunchConflictDialog:
     def test_one_row_per_conflict(self, qtbot) -> None:
         c1 = _ds(100)
         c2 = _ds(200, kind="ssh-shell", host="x.example", user="u")
-        dlg = LaunchConflictDialog([
-            ("conn-a", "Conn A", c1),
-            ("conn-b", "Conn B", c2),
-        ])
+        dlg = LaunchConflictDialog(
+            [
+                ("conn-a", "Conn A", c1),
+                ("conn-b", "Conn B", c2),
+            ]
+        )
         qtbot.addWidget(dlg)
         # Three radios per row × 2 rows = 6 (plus radios from QButtonGroups
         # are still QRadioButton instances).
@@ -78,18 +85,20 @@ class TestLaunchConflictDialog:
         assert adopt.isChecked()
 
     def test_continue_returns_actions_dict(self, qtbot) -> None:
-        dlg = LaunchConflictDialog([
-            ("a", "A", _ds(1)),
-            ("b", "B", _ds(2)),
-            ("c", "C", _ds(3)),
-        ])
+        dlg = LaunchConflictDialog(
+            [
+                ("a", "A", _ds(1)),
+                ("b", "B", _ds(2)),
+                ("c", "C", _ds(3)),
+            ]
+        )
         qtbot.addWidget(dlg)
         _select_radio(dlg, "a", "adopt")
         _select_radio(dlg, "b", "duplicate")
         _select_radio(dlg, "c", "skip")
         _click_continue(dlg)
         assert dlg.result() == QDialog.DialogCode.Accepted
-        assert dlg.actions == {"a": "adopt", "b": "duplicate", "c": "skip"}
+        assert dlg.chosen_actions == {"a": "adopt", "b": "duplicate", "c": "skip"}
 
     def test_cancel_leaves_actions_empty(self, qtbot) -> None:
         dlg = LaunchConflictDialog([("a", "A", _ds(1))])
@@ -98,7 +107,7 @@ class TestLaunchConflictDialog:
         assert cancel_btn is not None
         cancel_btn.click()
         assert dlg.result() == QDialog.DialogCode.Rejected
-        assert dlg.actions == {}
+        assert dlg.chosen_actions == {}
 
 
 # ---------------------------------------------------------------------------
@@ -109,19 +118,22 @@ class TestLaunchConflictDialog:
 @pytest.fixture()
 def doc() -> CpsmDocument:
     c1 = ClaudeLocalConnection(
-        id="alpha", name="Alpha",
+        id="alpha",
+        name="Alpha",
         launch_profile="claude-local",
         project_folder="~/projects/alpha",
         claude_options="--resume",
     )
     c2 = ClaudeLocalConnection(
-        id="beta", name="Beta",
+        id="beta",
+        name="Beta",
         launch_profile="claude-local",
         project_folder="~/projects/beta",
         claude_options="",
     )
     c3 = ClaudeLocalConnection(
-        id="gamma", name="Gamma",
+        id="gamma",
+        name="Gamma",
         launch_profile="claude-local",
         project_folder="~/projects/gamma",
         claude_options="",
@@ -136,18 +148,26 @@ def doc() -> CpsmDocument:
 @pytest.fixture()
 def services(doc) -> SimpleNamespace:
     discovery = MagicMock()
+
     # Only "alpha" has a conflict.
     def find_for(_doc, cid):
         if cid == "alpha":
             return _ds(11111, cwd="/home/user/projects/alpha")
         return None
+
     discovery.find_for_connection.side_effect = find_for
     discovery.find_outside_sessions.return_value = []
     svc = SimpleNamespace(
-        config=MagicMock(), session=MagicMock(), layout=MagicMock(),
-        templates=MagicMock(), repository=MagicMock(), key_service=MagicMock(),
-        config_path=Path("/tmp/x.yaml"), status_poller=MagicMock(),
-        monitor_service=None, discovery=discovery,
+        config=MagicMock(),
+        session=MagicMock(),
+        layout=MagicMock(),
+        templates=MagicMock(),
+        repository=MagicMock(),
+        key_service=MagicMock(),
+        config_path=Path("/tmp/x.yaml"),
+        status_poller=MagicMock(),
+        monitor_service=None,
+        discovery=discovery,
     )
     svc.config.validate.return_value = []
     svc.config.load.return_value = doc
@@ -162,9 +182,7 @@ def win(qtbot, doc, services, monkeypatch) -> MainWindow:
         raising=False,
     )
     # Bypass any auth prompts so launches can complete.
-    monkeypatch.setattr(
-        MainWindow, "_ensure_auth_for_connection", lambda self, conn: True
-    )
+    monkeypatch.setattr(MainWindow, "_ensure_auth_for_connection", lambda self, conn: True)
     w = MainWindow(services=services, document=doc)
     qtbot.addWidget(w)
     return w
@@ -179,9 +197,11 @@ class TestLaunchGroupWithConflicts:
         from cpsm.ui.dialogs import launch_conflict as lc_mod
 
         original = lc_mod.LaunchConflictDialog
+
         def _spy(*args, **kwargs):
             called["count"] += 1
             return original(*args, **kwargs)
+
         monkeypatch.setattr(lc_mod, "LaunchConflictDialog", _spy)
 
         grp = doc.groups[0]
@@ -197,11 +217,12 @@ class TestLaunchGroupWithConflicts:
 
         class _StubDlg:
             def __init__(self, conflicts, parent=None):
-                self.actions = {cid: "skip" for cid, _, _ in conflicts}
+                self.chosen_actions = {cid: "skip" for cid, _, _ in conflicts}
                 self.DialogCode = QDialog.DialogCode
 
             def exec(self):
                 return QDialog.DialogCode.Accepted
+
         monkeypatch.setattr(lc_mod, "LaunchConflictDialog", _StubDlg)
 
         grp = doc.groups[0]
@@ -214,18 +235,17 @@ class TestLaunchGroupWithConflicts:
         skipped_grp = next(g for g in launch_doc.groups if g.id == "g1")
         assert skipped_grp.members == ["beta", "gamma"]
 
-    def test_cancel_aborts_launch(
-        self, qtbot, win, services, doc, monkeypatch
-    ) -> None:
+    def test_cancel_aborts_launch(self, qtbot, win, services, doc, monkeypatch) -> None:
         from cpsm.ui.dialogs import launch_conflict as lc_mod
 
         class _CancelDlg:
             def __init__(self, *a, **kw):
-                self.actions = {}
+                self.chosen_actions = {}
                 self.DialogCode = QDialog.DialogCode
 
             def exec(self):
                 return QDialog.DialogCode.Rejected
+
         monkeypatch.setattr(lc_mod, "LaunchConflictDialog", _CancelDlg)
 
         grp = doc.groups[0]
@@ -240,15 +260,17 @@ class TestLaunchGroupWithConflicts:
 
         class _AdoptDlg:
             def __init__(self, conflicts, parent=None):
-                self.actions = {cid: "adopt" for cid, _, _ in conflicts}
+                self.chosen_actions = {cid: "adopt" for cid, _, _ in conflicts}
                 self.DialogCode = QDialog.DialogCode
 
             def exec(self):
                 return QDialog.DialogCode.Accepted
+
         monkeypatch.setattr(lc_mod, "LaunchConflictDialog", _AdoptDlg)
         # Stub adopt-pid dialog to instantly succeed without UI.
         monkeypatch.setattr(
-            MainWindow, "_adopt_pid_via_dialog",
+            MainWindow,
+            "_adopt_pid_via_dialog",
             lambda self, session, label: True,
         )
 
@@ -264,23 +286,23 @@ class TestLaunchGroupWithConflicts:
         beta = next(c for c in launch_doc.connections if c.id == "beta")
         assert beta.claude_options == ""
 
-    def test_adopt_cancel_aborts_group_launch(
-        self, qtbot, win, services, doc, monkeypatch
-    ) -> None:
+    def test_adopt_cancel_aborts_group_launch(self, qtbot, win, services, doc, monkeypatch) -> None:
         """If the user cancels the inner AdoptSessionDialog, the whole
         group launch is aborted (we don't half-launch the group)."""
         from cpsm.ui.dialogs import launch_conflict as lc_mod
 
         class _AdoptDlg:
             def __init__(self, conflicts, parent=None):
-                self.actions = {cid: "adopt" for cid, _, _ in conflicts}
+                self.chosen_actions = {cid: "adopt" for cid, _, _ in conflicts}
                 self.DialogCode = QDialog.DialogCode
 
             def exec(self):
                 return QDialog.DialogCode.Accepted
+
         monkeypatch.setattr(lc_mod, "LaunchConflictDialog", _AdoptDlg)
         monkeypatch.setattr(
-            MainWindow, "_adopt_pid_via_dialog",
+            MainWindow,
+            "_adopt_pid_via_dialog",
             lambda self, session, label: False,  # user cancelled
         )
 
@@ -298,11 +320,12 @@ class TestLaunchGroupWithConflicts:
 
         class _AdoptDlg:
             def __init__(self, conflicts, parent=None):
-                self.actions = {cid: "adopt" for cid, _, _ in conflicts}
+                self.chosen_actions = {cid: "adopt" for cid, _, _ in conflicts}
                 self.DialogCode = QDialog.DialogCode
 
             def exec(self):
                 return QDialog.DialogCode.Accepted
+
         monkeypatch.setattr(lc_mod, "LaunchConflictDialog", _AdoptDlg)
 
         # First find_for_connection (during _resolve_launch_conflicts)

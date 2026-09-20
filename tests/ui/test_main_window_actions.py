@@ -171,6 +171,7 @@ def test_on_import_action_calls_import_service(
     # Round-late tweak: a confirmation dialog now precedes the file
     # picker — auto-Ok it so the test can reach the picker path.
     from PySide6.QtWidgets import QMessageBox
+
     monkeypatch.setattr(
         "cpsm.ui.main_window.QMessageBox.information",
         lambda *a, **kw: QMessageBox.StandardButton.Ok,

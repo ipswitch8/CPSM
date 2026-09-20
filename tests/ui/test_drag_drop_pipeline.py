@@ -303,8 +303,7 @@ class TestMembersListGreysOutPlacedConnections:
             item = items_by_id[placed_id]
             fg = item.foreground().color()
             assert fg.name().lower() == _grey_hex.lower(), (
-                f"Expected grey foreground for placed '{placed_id}', "
-                f"got {fg.name()!r}"
+                f"Expected grey foreground for placed '{placed_id}', got {fg.name()!r}"
             )
             assert "Already on canvas" in item.toolTip(), (
                 f"Expected 'Already on canvas' marker in tooltip for '{placed_id}', "
@@ -367,9 +366,7 @@ class TestMembersListGreyedItemsStillDraggable:
         assert item.data(Qt.ItemDataRole.UserRole) == "conn-a"
 
         flags = item.flags()
-        assert flags & Qt.ItemFlag.ItemIsEnabled, (
-            "Greyed item must still have ItemIsEnabled"
-        )
+        assert flags & Qt.ItemFlag.ItemIsEnabled, "Greyed item must still have ItemIsEnabled"
         assert flags & Qt.ItemFlag.ItemIsDragEnabled, (
             "Greyed (already-placed) item must remain draggable"
         )

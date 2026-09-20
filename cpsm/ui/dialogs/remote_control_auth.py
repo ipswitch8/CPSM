@@ -25,7 +25,7 @@ dialog end-to-end without touching real hosts.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
 
 from PySide6.QtCore import (
     QObject,
@@ -120,6 +120,7 @@ def _default_spawn_terminal(argv: list[str], title: str) -> None:
         LocalShellLauncher,
         discover_launchers,
     )
+
     last_err: Exception | None = None
     for launcher in discover_launchers():
         if isinstance(launcher, LocalShellLauncher):
@@ -130,9 +131,7 @@ def _default_spawn_terminal(argv: list[str], title: str) -> None:
         except (NotImplementedError, Exception) as exc:
             last_err = exc
             continue
-    raise RuntimeError(
-        f"Could not spawn an auth terminal; last error: {last_err}"
-    )
+    raise RuntimeError(f"Could not spawn an auth terminal; last error: {last_err}")
 
 
 class RemoteControlAuthDialog(QDialog):
@@ -212,9 +211,7 @@ class RemoteControlAuthDialog(QDialog):
 
         # Header — visible across all pages so the user remembers what
         # they're doing.
-        header = QLabel(
-            f"<b>Target:</b> {self._user}@{self._host}:{self._port}"
-        )
+        header = QLabel(f"<b>Target:</b> {self._user}@{self._host}:{self._port}")
         header.setObjectName("label_rc_target")
         root.addWidget(header)
 
@@ -228,15 +225,14 @@ class RemoteControlAuthDialog(QDialog):
         self._pages.addWidget(self._build_done_page())
 
         # Dialog buttons. Visibility/enabled state changes per page.
-        self._buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Cancel
-        )
+        self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
         self._buttons.setObjectName("buttonbox_rc")
         self._btn_next = QPushButton("Continue")
         self._btn_next.setObjectName("btn_rc_next")
         self._btn_next.setEnabled(False)  # preflight running
         self._buttons.addButton(
-            self._btn_next, QDialogButtonBox.ButtonRole.AcceptRole,
+            self._btn_next,
+            QDialogButtonBox.ButtonRole.AcceptRole,
         )
         self._buttons.rejected.connect(self.reject)
         self._btn_next.clicked.connect(self._on_next_clicked)
@@ -279,7 +275,7 @@ class RemoteControlAuthDialog(QDialog):
         instructions.setObjectName("label_rc_instructions")
         instructions.setWordWrap(True)
         instructions.setTextFormat(  # render <code>
-            instructions.textFormat().__class__(1)  # type: ignore[arg-type]
+            instructions.textFormat().__class__(1)
         )
         layout.addWidget(instructions)
 
@@ -348,9 +344,7 @@ class RemoteControlAuthDialog(QDialog):
             self._key_path,
             parent=self,
         )
-        self._preflight_worker.finished_with_result.connect(
-            self._on_preflight_done
-        )
+        self._preflight_worker.finished_with_result.connect(self._on_preflight_done)
         self._preflight_worker.start()
 
     @Slot(object)
@@ -363,16 +357,16 @@ class RemoteControlAuthDialog(QDialog):
             ver_str = ".".join(str(v) for v in result.claude_version)
             min_str = ".".join(str(v) for v in MIN_CLAUDE_VERSION)
             ok_mark = "✓" if result.claude_version >= MIN_CLAUDE_VERSION else "✗"
-            lines.append(
-                f"• Claude Code version: <b>{ver_str}</b> "
-                f"(need ≥ {min_str}) {ok_mark}"
-            )
+            lines.append(f"• Claude Code version: <b>{ver_str}</b> (need ≥ {min_str}) {ok_mark}")
         else:
             lines.append("• Claude Code: <b>not found on PATH</b> ✗")
         lines.append(
             "• ANTHROPIC_API_KEY: "
-            + ("<b>set (will be unset for /login)</b> ⚠" if result.api_key_set
-               else "<b>not set</b> ✓")
+            + (
+                "<b>set (will be unset for /login)</b> ⚠"
+                if result.api_key_set
+                else "<b>not set</b> ✓"
+            )
         )
 
         if result.errors:
@@ -424,8 +418,7 @@ class RemoteControlAuthDialog(QDialog):
         except Exception as exc:
             logger.exception("Failed to spawn auth terminal")
             self._lbl_preflight_status.setText(
-                f"<span style='color:#c33'>Could not open a terminal: {exc}"
-                f"</span>"
+                f"<span style='color:#c33'>Could not open a terminal: {exc}</span>"
             )
             return
         self._pages.setCurrentIndex(2)
@@ -481,7 +474,7 @@ class RemoteControlAuthDialog(QDialog):
     # Lifecycle
     # ------------------------------------------------------------------
 
-    def reject(self) -> None:  # type: ignore[override]
+    def reject(self) -> None:
         if self._poll_timer is not None:
             self._poll_timer.stop()
             self._poll_timer = None

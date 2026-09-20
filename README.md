@@ -19,14 +19,14 @@ Download `CPSM-<version>-x86_64.AppImage` and `install.sh` from the
 [**Releases page**](https://github.com/ipswitch8/CPSM/releases/latest), then:
 
 ```bash
-chmod +x CPSM-0.2.0-x86_64.AppImage
+chmod +x CPSM-0.2.1-x86_64.AppImage
 
 # Run it directly — nothing is installed, no dependencies are resolved for you
-./CPSM-0.2.0-x86_64.AppImage
+./CPSM-0.2.1-x86_64.AppImage
 
 # Or install properly: menu entry, PATH symlink, missing packages pulled in
-./install.sh CPSM-0.2.0-x86_64.AppImage          # this user only
-sudo ./install.sh CPSM-0.2.0-x86_64.AppImage     # every user on the machine
+./install.sh CPSM-0.2.1-x86_64.AppImage          # this user only
+sudo ./install.sh CPSM-0.2.1-x86_64.AppImage     # every user on the machine
 ```
 
 The first launch shows a Welcome dialog: **Open** an existing `.cpsm.yaml`,
@@ -71,8 +71,8 @@ from your distribution.
 
 | Method | Audience | Command |
 |---|---|---|
-| **AppImage** (recommended) | Linux end users | `./CPSM-0.2.0-x86_64.AppImage` |
-| **`install.sh`** | Linux end users wanting menu integration + deps | `./install.sh CPSM-0.2.0-x86_64.AppImage` |
+| **AppImage** (recommended) | Linux end users | `./CPSM-0.2.1-x86_64.AppImage` |
+| **`install.sh`** | Linux end users wanting menu integration + deps | `./install.sh CPSM-0.2.1-x86_64.AppImage` |
 | **pip / source** | Developers, packagers | `pip install -e ".[dev]"` |
 | **PyInstaller bundle** | Packagers building installers | `pyinstaller --noconfirm packaging/cpsm.spec` |
 
@@ -609,7 +609,7 @@ Right-click a discovered row → **Adopt** to convert it into a real
 Set `CPSM_LOG_LEVEL=INFO` in the environment to trace probe activity:
 
 ```bash
-CPSM_LOG_LEVEL=INFO ./CPSM-0.2.0-x86_64.AppImage 2>/tmp/cpsm.log
+CPSM_LOG_LEVEL=INFO ./CPSM-0.2.1-x86_64.AppImage 2>/tmp/cpsm.log
 ```
 
 ---
@@ -648,7 +648,7 @@ pyinstaller --noconfirm packaging/cpsm.spec
 # Build the Linux AppImage
 # (NOT appimage-builder — its AppRun LD_PRELOADs libapprun_hooks.so and
 #  leaks ~413 MB/day; see docs/MEMORY-LEAK-INVESTIGATION.md)
-CPSM_VERSION=0.2.0 scripts/build_appimage_plain.sh
+CPSM_VERSION=0.2.1 scripts/build_appimage_plain.sh
 ```
 
 The minimal buildable fileset (for distributing source):

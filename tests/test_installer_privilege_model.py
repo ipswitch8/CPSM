@@ -56,8 +56,9 @@ decide_install_target
 echo "RESULT type=$INSTALL_TYPE dir=$INSTALL_DIR bin=$BIN_DIR desktop=$DESKTOP_SCOPE pkgsudo='$PKG_SUDO'"
 """
     stdin = None if interactive else subprocess.DEVNULL
-    r = subprocess.run(["bash", "-c", script], capture_output=True, text=True,
-                       stdin=stdin, timeout=60)
+    r = subprocess.run(
+        ["bash", "-c", script], capture_output=True, text=True, stdin=stdin, timeout=60
+    )
     return r.returncode, r.stdout + r.stderr
 
 
@@ -71,11 +72,11 @@ class TestSystemMode:
 
     def test_root_registers_the_launcher_for_all_users(self):
         """The point of a system install: everyone gets a launcher."""
-        rc, out = _decide(is_root=1)
+        _rc, out = _decide(is_root=1)
         assert "desktop=system" in out, out
 
     def test_root_needs_no_sudo(self):
-        rc, out = _decide(is_root=1)
+        _rc, out = _decide(is_root=1)
         assert "pkgsudo=''" in out, out
 
     def test_system_scope_uses_the_system_flag(self):
@@ -111,7 +112,7 @@ class TestUserMode:
 
     def test_sudo_is_reserved_for_packages(self):
         """PKG_SUDO exists so privilege is scoped to the one job needing it."""
-        rc, out = _decide(is_root=0, mode="user")
+        _rc, out = _decide(is_root=0, mode="user")
         assert "pkgsudo='sudo'" in out or "pkgsudo=''" in out, out
         text = INSTALL_SH.read_text(encoding="utf-8")
         # Package managers are the only consumers of elevated privilege.
@@ -120,7 +121,7 @@ class TestUserMode:
             if idx == -1:
                 continue
             line_start = text.rfind("\n", 0, idx) + 1
-            assert "PKG_SUDO" in text[line_start:idx + len(mgr)], mgr
+            assert "PKG_SUDO" in text[line_start : idx + len(mgr)], mgr
 
 
 class TestModeSelection:

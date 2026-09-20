@@ -24,12 +24,11 @@ Returned via ``dialog.exec()`` plus the ``adopted`` attribute.
 
 from __future__ import annotations
 
-from typing import Any
+import contextlib
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QDialog,
-    QDialogButtonBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -161,11 +160,13 @@ class AdoptSessionDialog(QDialog):
             f"(with <code>--continue</code> appended for Claude profiles)."
         )
         self._status.setVisible(False)
-        self._set_buttons([
-            ("close_self", "I'll close it myself"),
-            ("sigterm", "SIGTERM for me"),
-            ("cancel", "Cancel"),
-        ])
+        self._set_buttons(
+            [
+                ("close_self", "I'll close it myself"),
+                ("sigterm", "SIGTERM for me"),
+                ("cancel", "Cancel"),
+            ]
+        )
 
     def _on_phase1_choice(self, key: str) -> None:
         if key == "cancel":
@@ -174,7 +175,9 @@ class AdoptSessionDialog(QDialog):
         if key == "sigterm":
             ok = send_sigterm(self._session.pid)
             if not ok and is_pid_alive(self._session.pid):
-                self._status.setText("Could not send SIGTERM (permission denied?). Try closing it manually.")
+                self._status.setText(
+                    "Could not send SIGTERM (permission denied?). Try closing it manually."
+                )
                 self._status.setVisible(True)
                 return
         self._show_phase_2()
@@ -184,16 +187,14 @@ class AdoptSessionDialog(QDialog):
     # ------------------------------------------------------------------
 
     def _show_phase_2(self) -> None:
-        self._prompt.setText(
-            f"Waiting for PID {self._session.pid} to exit…"
-        )
+        self._prompt.setText(f"Waiting for PID {self._session.pid} to exit…")
         self._status.setText("Polling every 0.2s.")
         self._status.setVisible(True)
         self._elapsed_ms = 0
         self._set_buttons([("cancel", "Cancel")])
         self._timer = QTimer(self)
         self._timer.setInterval(self._poll_interval_ms)
-        self._timer.timeout.connect(self._poll_tick)  # type: ignore[arg-type]
+        self._timer.timeout.connect(self._poll_tick)
         self._timer.start()
         self._poll_tick()  # check immediately rather than wait one tick
 
@@ -214,15 +215,16 @@ class AdoptSessionDialog(QDialog):
 
     def _show_phase_3_timeout(self) -> None:
         self._prompt.setText(
-            f"PID {self._session.pid} didn't exit within "
-            f"{self._timeout_ms / 1000:.0f} seconds."
+            f"PID {self._session.pid} didn't exit within {self._timeout_ms / 1000:.0f} seconds."
         )
         self._status.setText("You can force-kill it with SIGKILL or cancel and close it yourself.")
         self._status.setVisible(True)
-        self._set_buttons([
-            ("sigkill", "Force kill (SIGKILL)"),
-            ("cancel", "Cancel"),
-        ])
+        self._set_buttons(
+            [
+                ("sigkill", "Force kill (SIGKILL)"),
+                ("cancel", "Cancel"),
+            ]
+        )
 
     def _on_phase3_choice(self, key: str) -> None:
         if key == "cancel":
@@ -249,7 +251,7 @@ class AdoptSessionDialog(QDialog):
         for key, label in buttons:
             btn = QPushButton(label, self)
             btn.setObjectName(f"btn_adopt_{key}")
-            btn.clicked.connect(lambda _checked=False, k=key: self._dispatch(k))  # type: ignore[arg-type]
+            btn.clicked.connect(lambda _checked=False, k=key: self._dispatch(k))
             self._button_row.addWidget(btn)
 
     def _dispatch(self, key: str) -> None:
@@ -264,8 +266,6 @@ class AdoptSessionDialog(QDialog):
             return
         # cancel is universal
         if hasattr(self, "_timer"):
-            try:
+            with contextlib.suppress(Exception):
                 self._timer.stop()
-            except Exception:
-                pass
         self.reject()

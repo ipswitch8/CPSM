@@ -186,9 +186,7 @@ def test_remove_disconnected_monitor_signal_drops_ghost_from_layout(qtbot) -> No
     win._screen_map_widget.remove_disconnected_monitor_requested.emit("mon-gone")
 
     remaining_idents = [m.identifier for m in layout.monitors]
-    assert remaining_idents == ["mon-live"], (
-        f"expected ghost dropped; got {remaining_idents}"
-    )
+    assert remaining_idents == ["mon-live"], f"expected ghost dropped; got {remaining_idents}"
     assert persisted, "expected persist to be called for the mutated layout"
     assert persisted[0] is layout
 
@@ -204,7 +202,7 @@ def test_remove_disconnected_monitor_by_synthetic_index_key(qtbot) -> None:
     win.show()
     win._screen_map_widget.set_layout(layout, [])
 
-    win._screens_persist_canvas_layout = lambda _canvas: None  # noqa: E731
+    win._screens_persist_canvas_layout = lambda _canvas: None
 
     # Synthetic key for the second entry (index 1).
     win._screen_map_widget.remove_disconnected_monitor_requested.emit("__ghost_idx_1")
@@ -221,7 +219,6 @@ def test_screens_tab_right_click_on_ghost_shows_ghost_menu(qtbot) -> None:
     """
     from unittest.mock import patch
 
-    from PySide6.QtCore import QPoint
     from PySide6.QtWidgets import QMenu
 
     layout = _layout_with_two_monitors(live_ident="mon-live", ghost_ident="mon-gone")

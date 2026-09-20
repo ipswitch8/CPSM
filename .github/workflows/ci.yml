@@ -37,6 +37,31 @@ jobs:
       - name: Mypy (type-check)
         run: mypy cpsm
 
+  # ---------------------------------------------------------------------------
+  # Deliberately its own job, not a step of lint-and-type.
+  #
+  # It used to be the last step there, which meant the ruff failure at step
+  # one stopped it from ever running -- this guard was dormant for every
+  # commit from the initial publish until it was moved here. A disclosure
+  # check on a public repo must not sit downstream of a formatting check.
+  # ---------------------------------------------------------------------------
+  disclosure-lint:
+    name: Infrastructure-disclosure lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
       - name: Infrastructure-disclosure lint
         # This repo is public and its fixtures are easy to seed by pasting
         # from a real ~/.cpsm.yaml. Fail the build if a routable IP, a vendor

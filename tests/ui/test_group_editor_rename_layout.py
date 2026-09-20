@@ -33,8 +33,12 @@ from cpsm.ui.dialogs.group_editor import GroupEditorDialog
 
 def _make_doc() -> CpsmDocument:
     vp = Viewport(id="vp-1", geometry_pct=GeometryPct(x=0, y=0, w=100, h=100), panes=[])
-    layout = ScreenLayout(id="grp-test-default-layout", name="Original Name", monitors=[Monitor(viewports=[vp])])
-    grp = Group(id="grp-test", name="Test Group", members=[], default_layout_id="grp-test-default-layout")
+    layout = ScreenLayout(
+        id="grp-test-default-layout", name="Original Name", monitors=[Monitor(viewports=[vp])]
+    )
+    grp = Group(
+        id="grp-test", name="Test Group", members=[], default_layout_id="grp-test-default-layout"
+    )
     return CpsmDocument(groups=[grp], screen_layouts=[layout])
 
 

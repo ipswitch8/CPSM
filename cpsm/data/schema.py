@@ -43,8 +43,7 @@ def _validate_rc_name(value: str | None) -> str | None:
         return None
     if not _RC_NAME_RE.match(value):
         raise ValueError(
-            f"remote_control_name '{value}' must match ^[A-Za-z0-9_.-]{{1,64}}$"
-            " (no whitespace)"
+            f"remote_control_name '{value}' must match ^[A-Za-z0-9_.-]{{1,64}}$ (no whitespace)"
         )
     return value
 
@@ -522,9 +521,7 @@ class Split(BaseModel):
     @model_validator(mode="after")
     def validate_split(self) -> Split:
         if len(self.children) < 2:
-            raise ValueError(
-                f"Split must have at least 2 children, got {len(self.children)}"
-            )
+            raise ValueError(f"Split must have at least 2 children, got {len(self.children)}")
         if self.ratios is not None:
             if len(self.ratios) != len(self.children) - 1:
                 raise ValueError(
@@ -594,9 +591,7 @@ class Viewport(BaseModel):
             if len(self.panes) == 1:
                 self.split_tree = self.panes[0]
                 return self
-            direction: Literal["h", "v"] = (
-                "h" if self.tmux_layout in ("even-h", "main-h") else "v"
-            )
+            direction: Literal["h", "v"] = "h" if self.tmux_layout in ("even-h", "main-h") else "v"
             self.split_tree = Split(
                 direction=direction,
                 children=list(self.panes),
@@ -735,7 +730,8 @@ def _collapse_single_child(vp: Viewport, node: Split) -> None:
 
 
 def _find_node_parent(
-    root: Pane | Split, target: Split,
+    root: Pane | Split,
+    target: Split,
 ) -> tuple[Split, int] | None:
     """Return ``(parent, index)`` of *target* Split inside *root*, or None."""
     if isinstance(root, Pane):
@@ -902,6 +898,7 @@ class CpsmDocument(BaseModel):
         a launch (jump_host chain cycles / max depth) still raise.
         """
         import logging as _logging
+
         _fk_log = _logging.getLogger(__name__)
         for location, message in collect_fk_issues(self):
             _fk_log.warning("%s: %s", location, message)
@@ -1058,8 +1055,7 @@ def collect_fk_issues(doc: CpsmDocument) -> list[tuple[str, str]]:
                     if cid is not None and cid not in conn_ids:
                         issues.append(
                             (
-                                f"screen_layouts.{layout.id}.viewports."
-                                f"{vp.id}.panes.connection_id",
+                                f"screen_layouts.{layout.id}.viewports.{vp.id}.panes.connection_id",
                                 f"pane connection_id '{cid}' not found in connections",
                             )
                         )

@@ -43,9 +43,11 @@ from cpsm.data.schema import (
     ClaudeLocalConnection,
     GeometryPct,
     Monitor,
-    Pane as SchemaPane,
     ScreenLayout,
     Viewport,
+)
+from cpsm.data.schema import (
+    Pane as SchemaPane,
 )
 from cpsm.platform.base import Pane
 from cpsm.services.monitor_service import MonitorInfo
@@ -65,13 +67,25 @@ def _record(text: str) -> None:
 
 
 def _monitors() -> list[MonitorInfo]:
-    specs = [("mon-a", (0, 0, 1920, 1080)), ("mon-b", (1920, 0, 1920, 1080)),
-             ("mon-c", (3840, 0, 1920, 1080))]
+    specs = [
+        ("mon-a", (0, 0, 1920, 1080)),
+        ("mon-b", (1920, 0, 1920, 1080)),
+        ("mon-c", (3840, 0, 1920, 1080)),
+    ]
     return [
-        MonitorInfo(identifier=i, name=f"DP-{k}", geometry=g, available_geometry=g,
-                    physical_size_mm=(598.0, 336.0), device_pixel_ratio=1.0,
-                    orientation="landscape", manufacturer="", model="", serial="",
-                    qt_index=k)
+        MonitorInfo(
+            identifier=i,
+            name=f"DP-{k}",
+            geometry=g,
+            available_geometry=g,
+            physical_size_mm=(598.0, 336.0),
+            device_pixel_ratio=1.0,
+            orientation="landscape",
+            manufacturer="",
+            model="",
+            serial="",
+            qt_index=k,
+        )
         for k, (i, g) in enumerate(specs)
     ]
 
@@ -80,7 +94,8 @@ def _group_layout(gid: str, mons: list[MonitorInfo]) -> ScreenLayout:
     ms = []
     for mi, info in enumerate(mons):
         vp = Viewport(
-            id=f"vp-{gid}-{mi}", geometry_pct=GeometryPct(x=0, y=0, w=100, h=100),
+            id=f"vp-{gid}-{mi}",
+            geometry_pct=GeometryPct(x=0, y=0, w=100, h=100),
             tmux_layout="tiled",
             panes=[SchemaPane(connection_id=f"conn-{gid}-{mi}-{p}") for p in range(2)],
         )
@@ -97,10 +112,15 @@ class TestMultiGroupOverlayRedraw:
         layouts = {g: _group_layout(g, mons) for g in gids}
         conns = {
             f"conn-{g}-{mi}-{p}": ClaudeLocalConnection(
-                id=f"conn-{g}-{mi}-{p}", name=f"c-{g}-{mi}-{p}",
-                launch_profile="claude-local", project_folder=f"~/{g}{mi}{p}",
-                claude_options="--resume")
-            for g in gids for mi in range(3) for p in range(2)
+                id=f"conn-{g}-{mi}-{p}",
+                name=f"c-{g}-{mi}-{p}",
+                launch_profile="claude-local",
+                project_folder=f"~/{g}{mi}{p}",
+                claude_options="--resume",
+            )
+            for g in gids
+            for mi in range(3)
+            for p in range(2)
         }
 
         w = ScreenMapWidget()
@@ -162,16 +182,33 @@ class _DeadPaneBackend:
         # list forever. An earlier version of this test did exactly that and
         # "measured" a poller doing no work at all.
         out = [
-            Pane(id=f"%{i}", session=f"cpsm-group-g-mon-{i % 3}", window_index=0,
-                 pane_index=i, pid=1000 + i, dead=False, current_command="ssh",
-                 width=80, height=24)
+            Pane(
+                id=f"%{i}",
+                session=f"cpsm-group-g-mon-{i % 3}",
+                window_index=0,
+                pane_index=i,
+                pid=1000 + i,
+                dead=False,
+                current_command="ssh",
+                width=80,
+                height=24,
+            )
             for i in range(self._live)
         ]
         for d in range(self._dead):
             out.append(
-                Pane(id=f"%d{d}", session=f"cpsm-group-g-mon-{d % 3}", window_index=0,
-                     pane_index=100 + d, pid=None, dead=True, current_command="",
-                     width=80, height=24, dead_status=255)
+                Pane(
+                    id=f"%d{d}",
+                    session=f"cpsm-group-g-mon-{d % 3}",
+                    window_index=0,
+                    pane_index=100 + d,
+                    pid=None,
+                    dead=True,
+                    current_command="",
+                    width=80,
+                    height=24,
+                    dead_status=255,
+                )
             )
         return out
 

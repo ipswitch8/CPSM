@@ -51,9 +51,17 @@ pytestmark = [pytest.mark.ui, pytest.mark.perf]
 def _monitor(ident: str, idx: int) -> MonitorInfo:
     geo = (idx * 1920, 0, 1920, 1080)
     return MonitorInfo(
-        identifier=ident, name=f"DP-{idx}", geometry=geo, available_geometry=geo,
-        physical_size_mm=(598.0, 336.0), device_pixel_ratio=1.0,
-        orientation="landscape", manufacturer="", model="", serial="", qt_index=idx,
+        identifier=ident,
+        name=f"DP-{idx}",
+        geometry=geo,
+        available_geometry=geo,
+        physical_size_mm=(598.0, 336.0),
+        device_pixel_ratio=1.0,
+        orientation="landscape",
+        manufacturer="",
+        model="",
+        serial="",
+        qt_index=idx,
     )
 
 
@@ -61,8 +69,10 @@ def _layout(mons: list[MonitorInfo]) -> ScreenLayout:
     ms = []
     for mi, info in enumerate(mons):
         vp = Viewport(
-            id=f"vp-{mi}", geometry_pct=GeometryPct(x=0, y=0, w=100, h=100),
-            tmux_layout="tiled", panes=[Pane(connection_id=f"conn-{mi}")],
+            id=f"vp-{mi}",
+            geometry_pct=GeometryPct(x=0, y=0, w=100, h=100),
+            tmux_layout="tiled",
+            panes=[Pane(connection_id=f"conn-{mi}")],
         )
         ms.append(Monitor(identifier=info.identifier, monitor_index_hint=mi, viewports=[vp]))
     return ScreenLayout(id="layout-defect", name="layout-defect", monitors=ms)

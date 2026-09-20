@@ -215,8 +215,7 @@ class TestHarnessIsSound:
 
         assert report.leaks, "harness failed to detect a deliberate leak"
         assert report.qt_objects_per_iter >= 0.9, (
-            f"expected ~1 leaked Qt object per iteration, got "
-            f"{report.qt_objects_per_iter:.3f}"
+            f"expected ~1 leaked Qt object per iteration, got {report.qt_objects_per_iter:.3f}"
         )
         assert "QGraphicsRectItem" in report.qt_type_histogram
 
@@ -337,9 +336,7 @@ class TestPollCycleSuspects:
         )
         assert services.session.cleanup_calls > 0, "cleanup_dead_panes never reached"
 
-        report = measure_leak(
-            "MainWindow._on_status_poll_complete", cycle, iterations=ITERATIONS
-        )
+        report = measure_leak("MainWindow._on_status_poll_complete", cycle, iterations=ITERATIONS)
         report.note = f"scene items: {item_count}, cleanup calls: {services.session.cleanup_calls}"
         print("\n" + report.format())
         _record(report)

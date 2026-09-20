@@ -343,9 +343,7 @@ def test_stale_identifier_still_reports_needs_reconcile_correctly() -> None:
     )
     assert layout_needs_reconcile(layout, [_info("DELL-U27-0-SN0", 0)]) is False
     assert (
-        layout_needs_reconcile(
-            layout, [_info("DELL-U27-0-SN0", 0), _info("DELL-U27-1-SN1", 1)]
-        )
+        layout_needs_reconcile(layout, [_info("DELL-U27-0-SN0", 0), _info("DELL-U27-1-SN1", 1)])
         is True
     )
 

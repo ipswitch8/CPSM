@@ -14,6 +14,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -30,7 +31,6 @@ from cpsm.data.schema import (
 )
 from cpsm.services.discovery_service import DiscoveredSession
 from cpsm.ui.main_window import MainWindow
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -101,7 +101,8 @@ def discovered_ssh() -> DiscoveredSession:
 def services_with_discovery(doc, discovered_local, discovered_ssh) -> SimpleNamespace:
     discovery = MagicMock()
     discovery.find_outside_sessions.return_value = [
-        discovered_local, discovered_ssh,
+        discovered_local,
+        discovered_ssh,
     ]
     svc = SimpleNamespace(
         config=MagicMock(),
@@ -176,9 +177,7 @@ class TestDiscoveryWiring:
                 sub = item.child(0)
                 assert sub.data(0, 0x0100) == f"discovered:{discovered_ssh.pid}"
 
-    def test_clicking_subrow_shows_parent_connection_inspector(
-        self, win, discovered_local
-    ) -> None:
+    def test_clicking_subrow_shows_parent_connection_inspector(self, win, discovered_local) -> None:
         """D5: a sub-row visually belongs to its Connection, so selecting
         it should show that Connection's details (not clear the Inspector)."""
         # Find the sub-row item under the dotfiles Connection.
@@ -239,18 +238,30 @@ class TestDiscoveryWiring:
         """Unmatched discovered rows have no parent Connection — double-
         clicking should offer to create a new Connection from the process."""
         from cpsm.services.discovery_service import DiscoveredSession
+
         unmatched = DiscoveredSession(
-            pid=4242, kind="claude-local", cmdline="claude",
-            cwd="/home/user/orphan", host="", user="", tty="/dev/pts/9",
+            pid=4242,
+            kind="claude-local",
+            cmdline="claude",
+            cwd="/home/user/orphan",
+            host="",
+            user="",
+            tty="/dev/pts/9",
             suggested_connection_id="",
         )
         discovery = MagicMock()
         discovery.find_outside_sessions.return_value = [unmatched]
         services = SimpleNamespace(
-            config=MagicMock(), session=MagicMock(), layout=MagicMock(),
-            templates=MagicMock(), repository=MagicMock(), key_service=MagicMock(),
-            config_path=Path("/tmp/x.yaml"), status_poller=MagicMock(),
-            monitor_service=None, discovery=discovery,
+            config=MagicMock(),
+            session=MagicMock(),
+            layout=MagicMock(),
+            templates=MagicMock(),
+            repository=MagicMock(),
+            key_service=MagicMock(),
+            config_path=Path("/tmp/x.yaml"),
+            status_poller=MagicMock(),
+            monitor_service=None,
+            discovery=discovery,
         )
         services.config.validate.return_value = []
         services.config.load.return_value = doc
@@ -305,10 +316,16 @@ class TestDiscoveryWiring:
         discovery = MagicMock()
         discovery.find_outside_sessions.return_value = [initial]
         services = SimpleNamespace(
-            config=MagicMock(), session=MagicMock(), layout=MagicMock(),
-            templates=MagicMock(), repository=MagicMock(), key_service=MagicMock(),
-            config_path=Path("/tmp/x.yaml"), status_poller=MagicMock(),
-            monitor_service=None, discovery=discovery,
+            config=MagicMock(),
+            session=MagicMock(),
+            layout=MagicMock(),
+            templates=MagicMock(),
+            repository=MagicMock(),
+            key_service=MagicMock(),
+            config_path=Path("/tmp/x.yaml"),
+            status_poller=MagicMock(),
+            monitor_service=None,
+            discovery=discovery,
             correlation=MagicMock(),
         )
         services.config.validate.return_value = []
@@ -331,7 +348,8 @@ class TestDiscoveryWiring:
         # Pre-correlation: the initial local match places it under prod-web.
         cat = win._session_list._cat_connections
         prod_item = next(
-            cat.child(i) for i in range(cat.childCount())
+            cat.child(i)
+            for i in range(cat.childCount())
             if cat.child(i).data(0, 0x0100) == "prod-web"
         )
         assert prod_item.childCount() == 1
@@ -342,37 +360,48 @@ class TestDiscoveryWiring:
         # Sub-row moved: dotfiles now has it, prod-web is empty.
         cat = win._session_list._cat_connections
         prod_item = next(
-            cat.child(i) for i in range(cat.childCount())
+            cat.child(i)
+            for i in range(cat.childCount())
             if cat.child(i).data(0, 0x0100) == "prod-web"
         )
         dot_item = next(
-            cat.child(i) for i in range(cat.childCount())
+            cat.child(i)
+            for i in range(cat.childCount())
             if cat.child(i).data(0, 0x0100) == "dotfiles"
         )
         assert prod_item.childCount() == 0
         assert dot_item.childCount() == 1
         assert dot_item.child(0).data(0, 0x0100) == "discovered:5678"
 
-    def test_correlation_with_empty_mapping_is_a_noop(
-        self, qtbot, doc, monkeypatch
-    ) -> None:
+    def test_correlation_with_empty_mapping_is_a_noop(self, qtbot, doc, monkeypatch) -> None:
         """An empty CorrelationResult must not clobber the local matches —
         it just means the probe found nothing useful."""
         from cpsm.services.correlation_service import CorrelationResult
         from cpsm.services.discovery_service import DiscoveredSession
 
         initial = DiscoveredSession(
-            pid=1234, kind="claude-local", cmdline="claude",
-            cwd="/home/user/projects/dotfiles", host="", user="",
-            tty="/dev/pts/0", suggested_connection_id="dotfiles",
+            pid=1234,
+            kind="claude-local",
+            cmdline="claude",
+            cwd="/home/user/projects/dotfiles",
+            host="",
+            user="",
+            tty="/dev/pts/0",
+            suggested_connection_id="dotfiles",
         )
         discovery = MagicMock()
         discovery.find_outside_sessions.return_value = [initial]
         services = SimpleNamespace(
-            config=MagicMock(), session=MagicMock(), layout=MagicMock(),
-            templates=MagicMock(), repository=MagicMock(), key_service=MagicMock(),
-            config_path=Path("/tmp/x.yaml"), status_poller=MagicMock(),
-            monitor_service=None, discovery=discovery,
+            config=MagicMock(),
+            session=MagicMock(),
+            layout=MagicMock(),
+            templates=MagicMock(),
+            repository=MagicMock(),
+            key_service=MagicMock(),
+            config_path=Path("/tmp/x.yaml"),
+            status_poller=MagicMock(),
+            monitor_service=None,
+            discovery=discovery,
             correlation=MagicMock(),
         )
         services.config.validate.return_value = []
@@ -396,22 +425,27 @@ class TestDiscoveryWiring:
         # Original match preserved.
         cat = win._session_list._cat_connections
         dot_item = next(
-            cat.child(i) for i in range(cat.childCount())
+            cat.child(i)
+            for i in range(cat.childCount())
             if cat.child(i).data(0, 0x0100) == "dotfiles"
         )
         assert dot_item.childCount() == 1
 
-    def test_discovery_service_exception_does_not_crash(
-        self, qtbot, doc, monkeypatch
-    ) -> None:
+    def test_discovery_service_exception_does_not_crash(self, qtbot, doc, monkeypatch) -> None:
         """A misbehaving DiscoveryService must not break load_document."""
         bad_discovery = MagicMock()
         bad_discovery.find_outside_sessions.side_effect = RuntimeError("boom")
         services = SimpleNamespace(
-            config=MagicMock(), session=MagicMock(), layout=MagicMock(),
-            templates=MagicMock(), repository=MagicMock(), key_service=MagicMock(),
-            config_path=Path("/tmp/x.yaml"), status_poller=MagicMock(),
-            monitor_service=None, discovery=bad_discovery,
+            config=MagicMock(),
+            session=MagicMock(),
+            layout=MagicMock(),
+            templates=MagicMock(),
+            repository=MagicMock(),
+            key_service=MagicMock(),
+            config_path=Path("/tmp/x.yaml"),
+            status_poller=MagicMock(),
+            monitor_service=None,
+            discovery=bad_discovery,
         )
         services.config.validate.return_value = []
         services.config.load.return_value = doc
@@ -451,9 +485,7 @@ class TestConnectionSideMarker:
         text = self._conn_text(win, "dotfiles")
         assert "👻" not in text, text
 
-    def test_no_marker_when_no_matches(
-        self, win, services_with_discovery
-    ) -> None:
+    def test_no_marker_when_no_matches(self, win, services_with_discovery) -> None:
         services_with_discovery.discovery.find_outside_sessions.return_value = []
         win._refresh_discovered_sessions()
         text = self._conn_text(win, "dotfiles")
@@ -461,9 +493,7 @@ class TestConnectionSideMarker:
 
 
 class TestLaunchWithContinue:
-    def test_claude_profile_gets_continue_appended(
-        self, win, services_with_discovery, doc
-    ) -> None:
+    def test_claude_profile_gets_continue_appended(self, win, services_with_discovery, doc) -> None:
         claude = next(c for c in doc.connections if c.id == "dotfiles")
         win._launch_connection_with_continue(claude)
 
@@ -476,13 +506,9 @@ class TestLaunchWithContinue:
         adopted = next(c for c in launch_doc.connections if c.id == "dotfiles")
         assert adopted.claude_options == "--resume --continue"
 
-    def test_continue_not_double_appended(
-        self, win, services_with_discovery, doc
-    ) -> None:
+    def test_continue_not_double_appended(self, win, services_with_discovery, doc) -> None:
         # Mutate the doc so the connection already has --continue.
-        claude = doc.connections[0].model_copy(
-            update={"claude_options": "--continue"}
-        )
+        claude = doc.connections[0].model_copy(update={"claude_options": "--continue"})
         win._launch_connection_with_continue(claude)
         call = services_with_discovery.session.launch.call_args
         launch_doc, _ = call.args
@@ -506,9 +532,7 @@ class TestLaunchWithContinue:
         adopted = next(c for c in launch_doc.connections if c.id == "dotfiles")
         assert adopted.claude_options == "--resume --continue"
 
-    def test_ssh_shell_launches_unchanged(
-        self, win, services_with_discovery, doc
-    ) -> None:
+    def test_ssh_shell_launches_unchanged(self, win, services_with_discovery, doc) -> None:
         ssh = next(c for c in doc.connections if c.id == "prod-web")
         win._launch_connection_with_continue(ssh)
         # ssh-shell has no claude_options field at all; we just call launch

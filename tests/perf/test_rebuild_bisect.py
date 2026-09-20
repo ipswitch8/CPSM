@@ -78,9 +78,7 @@ class TestRebuildBisection:
                 widget.scene.addItem(QGraphicsRectItem(k, k, 50, 30))
 
         _record_curve(
-            _curve(
-                f"clear + {N_RECTS} QGraphicsRectItem", cycle, CHECKPOINTS, PER_CHECKPOINT
-            )
+            _curve(f"clear + {N_RECTS} QGraphicsRectItem", cycle, CHECKPOINTS, PER_CHECKPOINT)
         )
 
     def test_clear_and_add_text_items(self, widget: ScreenMapWidget) -> None:
@@ -98,9 +96,7 @@ class TestRebuildBisection:
                 widget.scene.addItem(item)
 
         _record_curve(
-            _curve(
-                f"clear + {N_TEXTS} QGraphicsTextItem", cycle, CHECKPOINTS, PER_CHECKPOINT
-            )
+            _curve(f"clear + {N_TEXTS} QGraphicsTextItem", cycle, CHECKPOINTS, PER_CHECKPOINT)
         )
 
     def test_fit_in_view_only(self, widget: ScreenMapWidget) -> None:
@@ -112,6 +108,4 @@ class TestRebuildBisection:
                 widget.scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio
             )
 
-        _record_curve(
-            _curve("fitInView() only", cycle, CHECKPOINTS, PER_CHECKPOINT)
-        )
+        _record_curve(_curve("fitInView() only", cycle, CHECKPOINTS, PER_CHECKPOINT))

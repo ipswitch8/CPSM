@@ -321,24 +321,143 @@ class TestVersionSourcesAgree:
             f"and cpsm/__init__.py, or retag."
         )
 
+    # The wiring test below parses the workflow instead of grepping it.
+    # An earlier version asserted only that the two strings appeared
+    # somewhere in release.yml, and a review demonstrated five separate ways
+    # to disable the guard while keeping that version green: commenting the
+    # step body out, adding `if: false`, appending `|| true`, renaming the
+    # env key to CPSM_RELEASE_TAGX (the old assertion string is a prefix of
+    # the typo, so it self-satisfied), and moving the check after the build.
+    # Each of those is covered by an assertion here.
+
+    @staticmethod
+    def _release_workflow() -> dict:
+        import yaml
+
+        path = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "release.yml"
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+
     def test_release_workflow_actually_runs_the_tag_check(self) -> None:
-        """The tag check must be wired into release.yml, not merely exist.
+        """The tag check must be wired in so that it can actually fail a release."""
+        steps = self._release_workflow()["jobs"]["build-linux"]["steps"]
 
-        A guard that skips unless an env var is set is worthless if nothing
-        ever sets it. This repo has already shipped one control that passed
-        by never executing, so the wiring gets its own test.
-        """
-        from pathlib import Path
-
-        workflow = (
-            Path(__file__).resolve().parent.parent / ".github" / "workflows" / "release.yml"
-        ).read_text(encoding="utf-8")
-
-        assert "CPSM_RELEASE_TAG" in workflow, (
-            "release.yml never sets CPSM_RELEASE_TAG, so "
-            "test_release_tag_matches_package_version always skips and the "
-            "tag/version agreement is unchecked."
+        tag_idx = [
+            n
+            for n, st in enumerate(steps)
+            if "test_release_tag_matches_package_version" in str(st.get("run", ""))
+        ]
+        assert tag_idx, (
+            "no step in build-linux runs test_release_tag_matches_package_version, "
+            "so the tag/version agreement is never checked during a release."
         )
-        assert "test_release_tag_matches_package_version" in workflow, (
-            "release.yml sets CPSM_RELEASE_TAG but never invokes the test that reads it."
+        idx = tag_idx[0]
+        step = steps[idx]
+
+        # A conditional or non-fatal step is a guard in name only.
+        assert "if" not in step, (
+            f"the tag-check step is conditional (if: {step.get('if')!r}); a guard "
+            f"that can be switched off by a condition does not guard anything."
+        )
+        assert step.get("continue-on-error") is not True, (
+            "the tag-check step sets continue-on-error, so a mismatched tag "
+            "would be reported and then ignored."
+        )
+
+        # The env var must be set on the step, under its exact name.
+        env = step.get("env") or {}
+        assert "CPSM_RELEASE_TAG" in env, (
+            f"the tag-check step does not set CPSM_RELEASE_TAG (env keys: "
+            f"{sorted(env)}). Without it the test skips and the step passes "
+            f"green without checking anything."
+        )
+        assert "github.ref_name" in str(env["CPSM_RELEASE_TAG"]), (
+            f"CPSM_RELEASE_TAG is set to {env['CPSM_RELEASE_TAG']!r}, not the "
+            f"pushed tag; the check would compare against the wrong value."
+        )
+
+        # A trailing `|| true` turns a failing pytest into a passing step.
+        run = str(step["run"])
+        for swallow in ("|| true", "||true", "|| :", "; true", "continue-on-error"):
+            assert swallow not in run, (
+                f"the tag-check step neutralises its own exit status with "
+                f"{swallow!r}, so a mismatched tag cannot fail the release."
+            )
+
+        # It must run BEFORE the build, or a mismatch is only caught after
+        # several minutes of PyInstaller work -- and after the point where a
+        # partial artifact may already exist.
+        build_idx = [
+            n for n, st in enumerate(steps) if "pyinstaller" in str(st.get("run", "")).lower()
+        ]
+        assert build_idx, "build-linux no longer has a PyInstaller step; this test needs updating."
+        assert idx < build_idx[0], (
+            f"the tag check runs at step {idx}, after the PyInstaller build at "
+            f"step {build_idx[0]}. It must run first so a bad tag fails fast."
+        )
+
+    def test_docs_do_not_name_a_stale_release_artifact(self) -> None:
+        """Docs must not tell users to run an AppImage that is not published.
+
+        The version is declared in five places: pyproject.toml,
+        cpsm/__init__.py, the README Quick Start, the README format table,
+        and install.sh's usage text. The first two already have a test
+        pinning them together; the other three drifted to 0.2.0 while the
+        package moved to 0.2.1, so the Quick Start told people to chmod a
+        file that 404s. This test covers the remaining three.
+        """
+        import re
+
+        import cpsm
+
+        root = Path(__file__).resolve().parent.parent
+        pattern = re.compile(r"CPSM-(\d+\.\d+\.\d+)-x86_64\.AppImage")
+        stale: list[str] = []
+
+        for rel in ("README.md", "install.sh", "packaging/install.sh"):
+            path = root / rel
+            if not path.is_file():
+                continue
+            for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                for found in pattern.findall(line):
+                    if found != cpsm.__version__:
+                        stale.append(f"{rel}:{lineno} names {found}")
+
+        assert not stale, (
+            "documentation names an AppImage version that is not the current "
+            f"release ({cpsm.__version__}). Anyone copying these commands gets "
+            "'No such file or directory':\n  " + "\n  ".join(stale)
+        )
+
+    def test_release_workflow_verifies_the_built_artifact(self) -> None:
+        """The packaged-artifact test must run where dist/ actually exists.
+
+        tests/e2e/test_packaged_artifact.py asserts the built binary reports
+        cpsm.__version__, but its dist-gated assertions skip when dist/ is
+        absent -- which it is in every ordinary CI job. The release job is
+        the only place that directory exists, so it is the only place those
+        assertions mean anything.
+        """
+        steps = self._release_workflow()["jobs"]["build-linux"]["steps"]
+
+        idx = [
+            n for n, st in enumerate(steps) if "test_packaged_artifact" in str(st.get("run", ""))
+        ]
+        assert idx, (
+            "no step in build-linux runs tests/e2e/test_packaged_artifact.py, so "
+            "nothing compares the BUILT binary's reported version against the "
+            "version it was named for."
+        )
+        step = steps[idx[0]]
+        assert "if" not in step, "the packaged-artifact check is conditional."
+        assert step.get("continue-on-error") is not True, (
+            "the packaged-artifact check sets continue-on-error."
+        )
+
+        build_idx = [
+            n for n, st in enumerate(steps) if "pyinstaller" in str(st.get("run", "")).lower()
+        ]
+        assert idx[0] > build_idx[0], (
+            f"the packaged-artifact check runs at step {idx[0]}, before the build "
+            f"at {build_idx[0]}; dist/ would not exist yet and every dist-gated "
+            f"assertion would silently skip."
         )

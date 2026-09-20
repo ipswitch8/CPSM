@@ -36,7 +36,6 @@ from typing import Any
 import pytest
 
 from tests.perf.leak_harness import native_heap_bytes
-from tests.perf.test_poll_cycle_leaks import _monitors, _record
 from tests.perf.test_screen_map_attribution import _build
 
 pytestmark = [pytest.mark.ui, pytest.mark.perf, pytest.mark.slow]

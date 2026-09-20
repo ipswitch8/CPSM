@@ -6,10 +6,10 @@
 
   Build:
     candle.exe -nologo cpsm.wxs -out cpsm.wixobj
-    light.exe  -nologo cpsm.wixobj -ext WixUIExtension -out CPSM-0.2.0-x64.msi
+    light.exe  -nologo cpsm.wixobj -ext WixUIExtension -out CPSM-0.2.1-x64.msi
 
   Variables passed on the candle command-line:
-    -dVersion=0.2.0
+    -dVersion=0.2.1
     -dSourceDir=..\..\dist\cpsm
 -->
 <?define ProductName    = "CPSM" ?>

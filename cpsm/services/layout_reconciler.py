@@ -33,7 +33,7 @@ from cpsm.services.monitor_service import MonitorInfo
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["reconcile_layout_with_monitors", "layout_needs_reconcile"]
+__all__ = ["layout_needs_reconcile", "reconcile_layout_with_monitors"]
 
 
 # ---------------------------------------------------------------------------
@@ -187,9 +187,7 @@ def reconcile_layout_with_monitors(
 
     claimed: set[int] = set()
     for positional_index, schema_monitor in enumerate(result.monitors):
-        matched = _match_index(
-            schema_monitor, positional_index, monitors, claimed, ambiguous
-        )
+        matched = _match_index(schema_monitor, positional_index, monitors, claimed, ambiguous)
         if matched is None:
             continue
         claimed.add(matched)
@@ -223,10 +221,9 @@ def reconcile_layout_with_monitors(
         # wrong physical screen.  An identifier shared by several attached
         # displays is never backfilled — it would name no particular one; such
         # entries get a hint instead.
-        if not schema_monitor.identifier and _is_synthetic_identifier(info.identifier):
-            if schema_monitor.monitor_index_hint is None:
-                schema_monitor.monitor_index_hint = info.qt_index
-        elif not schema_monitor.identifier and info.identifier in ambiguous:
+        if (not schema_monitor.identifier and _is_synthetic_identifier(info.identifier)) or (
+            not schema_monitor.identifier and info.identifier in ambiguous
+        ):
             if schema_monitor.monitor_index_hint is None:
                 schema_monitor.monitor_index_hint = info.qt_index
         elif not schema_monitor.identifier:
@@ -261,10 +258,7 @@ def reconcile_layout_with_monitors(
         # carries the match in those cases.
         identifier = (
             None
-            if (
-                _is_synthetic_identifier(info.identifier)
-                or info.identifier in ambiguous
-            )
+            if (_is_synthetic_identifier(info.identifier) or info.identifier in ambiguous)
             else info.identifier
         )
         result.monitors.append(
@@ -307,9 +301,7 @@ def layout_needs_reconcile(layout: ScreenLayout, monitors: list[MonitorInfo]) ->
         return True
     claimed: set[int] = set()
     for positional_index, schema_monitor in enumerate(layout.monitors):
-        matched = _match_index(
-            schema_monitor, positional_index, monitors, claimed, ambiguous
-        )
+        matched = _match_index(schema_monitor, positional_index, monitors, claimed, ambiguous)
         if matched is not None:
             claimed.add(matched)
     return len(claimed) < len(monitors)

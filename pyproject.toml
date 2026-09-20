@@ -88,6 +88,13 @@ ignore = [
   "UP009",            # UTF-8 header is mandatory per project policy (CLAUDE.md)
 ]
 
+# These are deliberate typography, not homoglyph smuggling: an EN DASH in
+# numeric ranges ("6\u201316 characters", "1\u20132 seconds") and a
+# MULTIPLICATION SIGN in grid dimensions ("Grid 3\u00d72"). Allowlisting the
+# three characters keeps RUF001/002/003 active for every other confusable
+# rather than switching the rules off wholesale.
+allowed-confusables = ["\u2013", "\u00d7", "\u2026"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["B", "SIM"]
 

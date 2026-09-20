@@ -13,13 +13,10 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import pytest
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QPushButton
 
 from cpsm.services.discovery_service import DiscoveredSession
 from cpsm.ui.dialogs.adopt_session import AdoptSessionDialog
-
 
 # A pid we can be confident is not assigned. Linux pid_max defaults to
 # 4_194_304 and the kernel would never assign 2**31-1, so signaling it
@@ -49,8 +46,10 @@ def _find_button(dlg: AdoptSessionDialog, key: str) -> QPushButton:
 class TestPhase1Choices:
     def test_initial_buttons_present(self, qtbot) -> None:
         dlg = AdoptSessionDialog(
-            _session(_DEAD_PID), target_label="Test",
-            timeout_ms=200, poll_interval_ms=50,
+            _session(_DEAD_PID),
+            target_label="Test",
+            timeout_ms=200,
+            poll_interval_ms=50,
         )
         qtbot.addWidget(dlg)
         # All three Phase-1 buttons render.
@@ -59,8 +58,10 @@ class TestPhase1Choices:
 
     def test_cancel_rejects(self, qtbot) -> None:
         dlg = AdoptSessionDialog(
-            _session(_DEAD_PID), target_label="Test",
-            timeout_ms=200, poll_interval_ms=50,
+            _session(_DEAD_PID),
+            target_label="Test",
+            timeout_ms=200,
+            poll_interval_ms=50,
         )
         qtbot.addWidget(dlg)
         _find_button(dlg, "cancel").click()
@@ -70,8 +71,10 @@ class TestPhase1Choices:
     def test_close_self_with_dead_pid_accepts_immediately(self, qtbot) -> None:
         """Pid is already gone, so Phase 2's first poll tick should accept."""
         dlg = AdoptSessionDialog(
-            _session(_DEAD_PID), target_label="Test",
-            timeout_ms=200, poll_interval_ms=50,
+            _session(_DEAD_PID),
+            target_label="Test",
+            timeout_ms=200,
+            poll_interval_ms=50,
         )
         qtbot.addWidget(dlg)
         _find_button(dlg, "close_self").click()
@@ -88,7 +91,8 @@ class TestTimeoutEscalation:
         dlg = AdoptSessionDialog(
             _session(os.getpid()),  # always alive
             target_label="Test",
-            timeout_ms=120, poll_interval_ms=40,
+            timeout_ms=120,
+            poll_interval_ms=40,
         )
         qtbot.addWidget(dlg)
         _find_button(dlg, "close_self").click()
@@ -103,7 +107,8 @@ class TestTimeoutEscalation:
         dlg = AdoptSessionDialog(
             _session(os.getpid()),
             target_label="Test",
-            timeout_ms=120, poll_interval_ms=40,
+            timeout_ms=120,
+            poll_interval_ms=40,
         )
         qtbot.addWidget(dlg)
         _find_button(dlg, "close_self").click()

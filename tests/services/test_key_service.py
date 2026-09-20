@@ -236,7 +236,9 @@ class TestDeploy:
         # authorized_keys output.  Make the mock return that.
         pub_key_body = Path(sample_ssh_key.public_path).read_text(encoding="utf-8").strip()
         mock_runner.run.return_value = MagicMock(
-            returncode=0, stdout=pub_key_body, stderr="",
+            returncode=0,
+            stdout=pub_key_body,
+            stderr="",
         )
         result = key_service.deploy(key=sample_ssh_key, connection=mock_conn)
         assert result.success
@@ -260,10 +262,7 @@ class TestDeploy:
     ) -> None:
         key_service.deploy(key=sample_ssh_key, connection=mock_conn)
         # Find the ssh-copy-id call (verify call also targets the host)
-        copy_call = next(
-            c for c in mock_runner.run.call_args_list
-            if "ssh-copy-id" in c.args[0]
-        )
+        copy_call = next(c for c in mock_runner.run.call_args_list if "ssh-copy-id" in c.args[0])
         argv = copy_call.args[0]
         combined = " ".join(argv)
         assert "ubuntu@example.com" in combined
@@ -300,15 +299,16 @@ class TestDeploy:
         # that it happens to be unset).
         monkeypatch.setenv("SSH_AUTH_SOCK", "/tmp/agent-fake.sock")
         key_service.deploy(
-            key=sample_ssh_key, connection=mock_conn, password=_TEST_PASSWORD,
+            key=sample_ssh_key,
+            connection=mock_conn,
+            password=_TEST_PASSWORD,
         )
         # Every call must have env supplied (not None) and not contain
         # SSH_AUTH_SOCK.
         for call_args in mock_runner.run.call_args_list:
             env = call_args.kwargs.get("env")
             assert env is not None, (
-                "deploy() must pass an explicit env when a password is "
-                "provided; got env=None"
+                "deploy() must pass an explicit env when a password is provided; got env=None"
             )
             assert "SSH_AUTH_SOCK" not in env, (
                 f"SSH_AUTH_SOCK must be stripped, found {env.get('SSH_AUTH_SOCK')!r}"
@@ -328,7 +328,9 @@ class TestDeploy:
         these flags.
         """
         key_service.deploy(
-            key=sample_ssh_key, connection=mock_conn, password=_TEST_PASSWORD,
+            key=sample_ssh_key,
+            connection=mock_conn,
+            password=_TEST_PASSWORD,
         )
         required = {
             "PreferredAuthentications=password,keyboard-interactive",
@@ -339,10 +341,9 @@ class TestDeploy:
         # The post-deploy verify call uses sshpass with the same options
         # to read remote authorized_keys, so it should too.
         deploy_calls = [
-            c for c in mock_runner.run.call_args_list
-            if "ssh-copy-id" in c.args[0] or (
-                c.args[0] and c.args[0][0] == "sshpass"
-            )
+            c
+            for c in mock_runner.run.call_args_list
+            if "ssh-copy-id" in c.args[0] or (c.args[0] and c.args[0][0] == "sshpass")
         ]
         assert deploy_calls, "expected at least one deploy/verify ssh call"
         for call_args in deploy_calls:
@@ -350,8 +351,7 @@ class TestDeploy:
             present = set(argv) & required
             missing = required - present
             assert not missing, (
-                f"deploy/verify call missing required auth flags {missing}; "
-                f"argv was {argv}"
+                f"deploy/verify call missing required auth flags {missing}; argv was {argv}"
             )
 
     def test_deploy_falls_back_to_manual_when_no_ssh_copy_id(
@@ -553,7 +553,9 @@ class TestDeploymentIsDeliberatelyNotPinned:
     def _deploy(self, key_service, mock_runner, sample_ssh_key, mock_conn):
         pub = Path(sample_ssh_key.public_path).read_text(encoding="utf-8").strip()
         mock_runner.run.return_value = MagicMock(
-            returncode=0, stdout=pub, stderr="",
+            returncode=0,
+            stdout=pub,
+            stderr="",
         )
         key_service.deploy(key=sample_ssh_key, connection=mock_conn)
         # Exercise guard: asserting an option is ABSENT is vacuously true if
@@ -562,14 +564,22 @@ class TestDeploymentIsDeliberatelyNotPinned:
         return [c.args[0] for c in mock_runner.run.call_args_list if c.args]
 
     def test_no_deploy_invocation_pins_the_identity(
-        self, key_service, mock_runner, sample_ssh_key, mock_conn,
+        self,
+        key_service,
+        mock_runner,
+        sample_ssh_key,
+        mock_conn,
     ) -> None:
         """Neither ssh-copy-id nor the verification ssh may carry the pin."""
         for argv in self._deploy(key_service, mock_runner, sample_ssh_key, mock_conn):
             assert not any("IdentitiesOnly" in a for a in argv), argv
 
     def test_ssh_copy_id_still_names_the_key_to_install(
-        self, key_service, mock_runner, sample_ssh_key, mock_conn,
+        self,
+        key_service,
+        mock_runner,
+        sample_ssh_key,
+        mock_conn,
     ) -> None:
         """-i must still be present -- it selects the key to INSTALL.
 
@@ -584,7 +594,11 @@ class TestDeploymentIsDeliberatelyNotPinned:
         assert copy_id[copy_id.index("-i") + 1].endswith(".pub")
 
     def test_verification_ssh_passes_no_identity_at_all(
-        self, key_service, mock_runner, sample_ssh_key, mock_conn,
+        self,
+        key_service,
+        mock_runner,
+        sample_ssh_key,
+        mock_conn,
     ) -> None:
         """The authorized_keys read-back carries no -i, so it needs no pin.
 
@@ -597,7 +611,11 @@ class TestDeploymentIsDeliberatelyNotPinned:
         assert not any("IdentitiesOnly" in a for a in verify), verify
 
     def test_password_path_wrapping_and_ordering_unchanged(
-        self, key_service, mock_runner, sample_ssh_key, mock_conn,
+        self,
+        key_service,
+        mock_runner,
+        sample_ssh_key,
+        mock_conn,
     ) -> None:
         """sshpass stays argv[0], the password stays out of argv, and the
         password path still carries no pin.
@@ -609,11 +627,14 @@ class TestDeploymentIsDeliberatelyNotPinned:
         here instead of, not alongside, the pin.
         """
         key_service.deploy(
-            key=sample_ssh_key, connection=mock_conn, password=_TEST_PASSWORD,
+            key=sample_ssh_key,
+            connection=mock_conn,
+            password=_TEST_PASSWORD,
         )
         assert mock_runner.run.call_count > 0, "deploy never invoked the runner"
         wrapped = [
-            c.args[0] for c in mock_runner.run.call_args_list
+            c.args[0]
+            for c in mock_runner.run.call_args_list
             if c.args and c.args[0] and c.args[0][0] == "sshpass"
         ]
         assert wrapped, "expected at least one sshpass-wrapped invocation"

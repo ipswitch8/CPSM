@@ -8,12 +8,10 @@ recording terminal-spawn function so no real SSH is ever attempted.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from cpsm.services.remote_control_service import PreflightResult
 from cpsm.ui.dialogs.remote_control_auth import RemoteControlAuthDialog
-
 
 # Make sure a QApplication exists (pytest-qt does this via qtbot, but we
 # don't strictly need its event loop helpers).
@@ -58,6 +56,7 @@ class FakeService:
 def _pump_until(app: QApplication, predicate, timeout_ms: int = 1000) -> bool:
     """Process events until *predicate* returns True or timeout."""
     import time
+
     deadline = time.time() + timeout_ms / 1000
     while time.time() < deadline:
         app.processEvents()
@@ -74,9 +73,7 @@ def _pump_until(app: QApplication, predicate, timeout_ms: int = 1000) -> bool:
 
 
 class TestHappyPath:
-    def test_full_flow_advances_through_all_pages(
-        self, app: QApplication
-    ) -> None:
+    def test_full_flow_advances_through_all_pages(self, app: QApplication) -> None:
         svc = FakeService(
             preflight_result=PreflightResult(
                 ok=True,
@@ -127,9 +124,7 @@ class TestHappyPath:
 
 
 class TestPreflightBlocking:
-    def test_macos_target_does_not_enable_next(
-        self, app: QApplication
-    ) -> None:
+    def test_macos_target_does_not_enable_next(self, app: QApplication) -> None:
         svc = FakeService(
             preflight_result=PreflightResult(
                 ok=False,
@@ -140,20 +135,18 @@ class TestPreflightBlocking:
             )
         )
         dlg = RemoteControlAuthDialog(
-            host="mac.local", user="ops",
-            service=svc, spawn_terminal=lambda *a, **k: None,
+            host="mac.local",
+            user="ops",
+            service=svc,
+            spawn_terminal=lambda *a, **k: None,
             poll_interval_ms=50,
         )
         dlg.show()
-        assert _pump_until(
-            app, lambda: "macOS" in dlg._lbl_preflight_status.text()
-        )
+        assert _pump_until(app, lambda: "macOS" in dlg._lbl_preflight_status.text())
         assert not dlg._btn_next.isEnabled()
         assert dlg._pages.currentIndex() == 0
 
-    def test_too_old_claude_does_not_enable_next(
-        self, app: QApplication
-    ) -> None:
+    def test_too_old_claude_does_not_enable_next(self, app: QApplication) -> None:
         svc = FakeService(
             preflight_result=PreflightResult(
                 ok=False,
@@ -164,14 +157,14 @@ class TestPreflightBlocking:
             )
         )
         dlg = RemoteControlAuthDialog(
-            host="h", user="u",
-            service=svc, spawn_terminal=lambda *a, **k: None,
+            host="h",
+            user="u",
+            service=svc,
+            spawn_terminal=lambda *a, **k: None,
             poll_interval_ms=50,
         )
         dlg.show()
-        assert _pump_until(
-            app, lambda: "too old" in dlg._lbl_preflight_status.text()
-        )
+        assert _pump_until(app, lambda: "too old" in dlg._lbl_preflight_status.text())
         assert not dlg._btn_next.isEnabled()
 
 
@@ -184,14 +177,18 @@ class TestPolling:
     def test_cancel_stops_polling_timer(self, app: QApplication) -> None:
         svc = FakeService(
             preflight_result=PreflightResult(
-                ok=True, os_kernel="Linux",
-                claude_version=(2, 1, 51), api_key_set=False,
+                ok=True,
+                os_kernel="Linux",
+                claude_version=(2, 1, 51),
+                api_key_set=False,
             ),
             credentials_after=999,  # never appears
         )
         dlg = RemoteControlAuthDialog(
-            host="h", user="u",
-            service=svc, spawn_terminal=lambda *a, **k: None,
+            host="h",
+            user="u",
+            service=svc,
+            spawn_terminal=lambda *a, **k: None,
             poll_interval_ms=50,
         )
         dlg.show()
@@ -224,13 +221,16 @@ class TestTerminalSpawn:
 
         svc = CapturingService(
             preflight_result=PreflightResult(
-                ok=True, os_kernel="Linux",
-                claude_version=(2, 1, 51), api_key_set=False,
+                ok=True,
+                os_kernel="Linux",
+                claude_version=(2, 1, 51),
+                api_key_set=False,
             ),
             credentials_after=999,
         )
         dlg = RemoteControlAuthDialog(
-            host="h", user="u",
+            host="h",
+            user="u",
             service=svc,
             spawn_terminal=lambda argv, title: captured_argv.append(argv),
             poll_interval_ms=50,

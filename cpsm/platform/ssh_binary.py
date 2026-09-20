@@ -243,9 +243,7 @@ class SshBinary:
             # about plink's behaviour is unverified here.  What IS verified is
             # CPSM's own behaviour: test_plink_identity_file_does_not_pin pins
             # the argv this builder emits for the plink flavor.
-            if self.flavor == "openssh" and not has_ssh_option(
-                ssh_options, "IdentitiesOnly"
-            ):
+            if self.flavor == "openssh" and not has_ssh_option(ssh_options, "IdentitiesOnly"):
                 argv += ["-o", "IdentitiesOnly=yes"]
 
         # Extra -o options (OpenSSH and plink ≥ 0.73)

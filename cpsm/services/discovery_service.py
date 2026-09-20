@@ -19,9 +19,10 @@ from __future__ import annotations
 import logging
 import os
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal, Protocol
+from typing import Literal, Protocol
 
 from cpsm.data.schema import CpsmDocument
 
@@ -114,10 +115,30 @@ _TMUX_COMM_PREFIX = "tmux"
 
 # ssh option flags that take a value (so we know to skip the next argv slot
 # during host extraction). Not exhaustive but covers the common cases.
-_SSH_OPTS_WITH_VALUE = frozenset({
-    "-o", "-i", "-p", "-l", "-J", "-c", "-F", "-W", "-D", "-L", "-R",
-    "-S", "-Q", "-Y", "-B", "-b", "-E", "-e", "-I", "-m",
-})
+_SSH_OPTS_WITH_VALUE = frozenset(
+    {
+        "-o",
+        "-i",
+        "-p",
+        "-l",
+        "-J",
+        "-c",
+        "-F",
+        "-W",
+        "-D",
+        "-L",
+        "-R",
+        "-S",
+        "-Q",
+        "-Y",
+        "-B",
+        "-b",
+        "-E",
+        "-e",
+        "-I",
+        "-m",
+    }
+)
 
 
 class _LinuxProcSource:
@@ -162,9 +183,7 @@ class _LinuxProcSource:
         except (FileNotFoundError, PermissionError, OSError):
             cmdline_raw = b""
         cmdline = tuple(
-            p.decode("utf-8", errors="replace")
-            for p in cmdline_raw.split(b"\x00")
-            if p
+            p.decode("utf-8", errors="replace") for p in cmdline_raw.split(b"\x00") if p
         )
 
         # cwd is a symlink to the working directory. Other-user processes
@@ -185,7 +204,12 @@ class _LinuxProcSource:
             pass
 
         return ProcInfo(
-            pid=pid, ppid=ppid, comm=comm, cmdline=cmdline, cwd=cwd, tty=tty,
+            pid=pid,
+            ppid=ppid,
+            comm=comm,
+            cmdline=cmdline,
+            cwd=cwd,
+            tty=tty,
         )
 
 
@@ -301,6 +325,7 @@ class _EmptyProcSource:
 
 def _is_linux() -> bool:
     import sys
+
     return sys.platform.startswith("linux")
 
 
@@ -319,9 +344,7 @@ def _is_candidate_command(proc: ProcInfo) -> bool:
     name = _basename(proc.cmdline[0])
     if name == "claude":
         return True
-    if name in ("ssh", "scp"):
-        return True
-    return False
+    return name in ("ssh", "scp")
 
 
 def _basename(path: str) -> str:
@@ -347,9 +370,7 @@ def _has_tmux_ancestor(proc: ProcInfo, by_pid: dict[int, ProcInfo]) -> bool:
     return False
 
 
-def _build_session(
-    proc: ProcInfo, doc: CpsmDocument
-) -> DiscoveredSession | None:
+def _build_session(proc: ProcInfo, doc: CpsmDocument) -> DiscoveredSession | None:
     """Classify *proc* and return a DiscoveredSession, or None to skip."""
     cmd0 = _basename(proc.cmdline[0]) if proc.cmdline else ""
     cmdline_display = " ".join(proc.cmdline)
@@ -471,9 +492,7 @@ def _match_local_by_cwd(doc: CpsmDocument, cwd: str) -> str:
     return ""
 
 
-def _match_remote_by_host_user(
-    doc: CpsmDocument, kind: str, host: str, user: str
-) -> str:
+def _match_remote_by_host_user(doc: CpsmDocument, kind: str, host: str, user: str) -> str:
     """Return a matching Connection.id by host+user, else "".
 
     Matches across both SSH-based profiles (``claude-remote`` and
@@ -543,6 +562,7 @@ def send_sigterm(pid: int) -> bool:
     """Send SIGTERM to *pid*. Returns True on success, False if the pid is
     already gone or we lack permission to signal it."""
     import signal
+
     if pid <= 0:
         return False
     try:
@@ -555,6 +575,7 @@ def send_sigterm(pid: int) -> bool:
 def send_sigkill(pid: int) -> bool:
     """Send SIGKILL to *pid*. Returns True on success, False otherwise."""
     import signal
+
     if pid <= 0:
         return False
     try:
@@ -569,7 +590,7 @@ def wait_for_pid_exit(
     *,
     timeout_s: float = 10.0,
     poll_interval_s: float = 0.2,
-    sleep: "Callable[[float], None] | None" = None,
+    sleep: Callable[[float], None] | None = None,
 ) -> bool:
     """Poll until *pid* is gone or *timeout_s* elapses.
 
@@ -578,6 +599,7 @@ def wait_for_pid_exit(
     polling loop deterministically without real wall-clock waits.
     """
     import time
+
     if pid <= 0:
         return True
     sleeper = sleep if sleep is not None else time.sleep

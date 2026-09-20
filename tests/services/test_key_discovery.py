@@ -199,8 +199,7 @@ def test_match_via_ssh_config_host_stanza_with_tilde_identity(
     ssh_dir = tmp_path / "ssh"
     ssh_dir.mkdir()
     (ssh_dir / "config").write_text(
-        "Host ssh.vendor.example.com\n"
-        "    IdentityFile ~/.ssh/vendor_hosting_key\n",
+        "Host ssh.vendor.example.com\n    IdentityFile ~/.ssh/vendor_hosting_key\n",
         encoding="utf-8",
     )
     svc = KeyDiscoveryService(ssh_dir=ssh_dir)
@@ -218,8 +217,7 @@ def test_match_via_ssh_config_relative_identity_file(tmp_path: Path) -> None:
     _write_private_only(tmp_path, "vendorhost_key")
     config = tmp_path / "config"
     config.write_text(
-        "Host ssh.vendor.example.com\n"
-        "    IdentityFile vendorhost_key\n",
+        "Host ssh.vendor.example.com\n    IdentityFile vendorhost_key\n",
         encoding="utf-8",
     )
     svc = KeyDiscoveryService(ssh_dir=tmp_path)
@@ -235,9 +233,7 @@ def test_ssh_config_hostname_directive_matches(tmp_path: Path) -> None:
     _write_private_only(tmp_path, "bastion_key")
     config = tmp_path / "config"
     config.write_text(
-        "Host bastion\n"
-        "    HostName 10.20.30.40\n"
-        "    IdentityFile bastion_key\n",
+        "Host bastion\n    HostName 10.20.30.40\n    IdentityFile bastion_key\n",
         encoding="utf-8",
     )
     svc = KeyDiscoveryService(ssh_dir=tmp_path)
@@ -252,12 +248,10 @@ def test_ssh_config_outranks_pub_comment(tmp_path: Path) -> None:
     # Same host matched two ways: an ssh_config IdentityFile, and a
     # differently-named key with a matching .pub comment. ssh_config wins.
     _write_private_only(tmp_path, "config_key")
-    (tmp_path / "config_key.pub").write_text(
-        "ssh-ed25519 AAAA fake config_key\n", encoding="utf-8"
-    )
+    (tmp_path / "config_key.pub").write_text("ssh-ed25519 AAAA fake config_key\n", encoding="utf-8")
     config = tmp_path / "config"
     config.write_text(
-        "Host 192.0.2.44\n" "    IdentityFile config_key\n",
+        "Host 192.0.2.44\n    IdentityFile config_key\n",
         encoding="utf-8",
     )
     _write_key_pair(tmp_path, "pub_only_match", comment="root@192.0.2.44")
@@ -314,7 +308,7 @@ def test_pub_without_private_key_is_not_returned(tmp_path: Path) -> None:
 def test_ssh_config_identity_file_missing_private_key_not_returned(tmp_path: Path) -> None:
     config = tmp_path / "config"
     config.write_text(
-        "Host ghost.example.com\n" "    IdentityFile nonexistent_key\n",
+        "Host ghost.example.com\n    IdentityFile nonexistent_key\n",
         encoding="utf-8",
     )
     svc = KeyDiscoveryService(ssh_dir=tmp_path)
@@ -340,7 +334,7 @@ def test_ranking_order_with_several_matches(tmp_path: Path) -> None:
     _write_private_only(tmp_path, "config_match")
     config = tmp_path / "config"
     config.write_text(
-        "Host target.example.com\n" "    IdentityFile config_match\n",
+        "Host target.example.com\n    IdentityFile config_match\n",
         encoding="utf-8",
     )
 
@@ -422,8 +416,7 @@ def test_private_key_file_is_never_opened_for_reading(
     _write_private_only(tmp_path, "id_ed25519")
     config = tmp_path / "config"
     config.write_text(
-        "Host ssh.vendor.example.com\n"
-        "    IdentityFile ~/.ssh/utility\n",
+        "Host ssh.vendor.example.com\n    IdentityFile ~/.ssh/utility\n",
         encoding="utf-8",
     )
 
@@ -437,9 +430,9 @@ def test_private_key_file_is_never_opened_for_reading(
     monkeypatch.setattr(Path, "open", recording_open)
 
     svc = KeyDiscoveryService(ssh_dir=tmp_path)
-    svc.discover("192.0.2.44", user="root")       # pub-comment path
-    svc.discover("ssh.vendor.example.com")            # ssh_config path
-    svc.discover("no-such-host.invalid")           # falls through to defaults
+    svc.discover("192.0.2.44", user="root")  # pub-comment path
+    svc.discover("ssh.vendor.example.com")  # ssh_config path
+    svc.discover("no-such-host.invalid")  # falls through to defaults
 
     # The recorder must actually have recorded something. Without this, the
     # loop below is vacuous: an empty list satisfies it trivially, so a
@@ -508,10 +501,7 @@ def test_key_discovery_module_imports_nothing_impure() -> None:
     forbidden = {"PySide6", "subprocess", "socket", "asyncio", "requests", "urllib"}
 
     source = (
-        Path(__file__).resolve().parent.parent.parent
-        / "cpsm"
-        / "services"
-        / "key_discovery.py"
+        Path(__file__).resolve().parent.parent.parent / "cpsm" / "services" / "key_discovery.py"
     ).read_text(encoding="utf-8")
 
     offenders: list[str] = []
@@ -528,6 +518,5 @@ def test_key_discovery_module_imports_nothing_impure() -> None:
     assert not offenders, (
         "key_discovery.py must remain pure logic (no Qt, no subprocess, no "
         "network) — it is called synchronously from the UI and its tests "
-        "assume it cannot execute or connect to anything. Found: "
-        + "; ".join(offenders)
+        "assume it cannot execute or connect to anything. Found: " + "; ".join(offenders)
     )

@@ -451,9 +451,7 @@ class ConnectionForm(QWidget):
             "this session from claude.ai. Requires one-time /login on the box."
         )
         self._btn_setup_remote_control = QPushButton("Set up auth…")
-        self._btn_setup_remote_control.setObjectName(
-            "btn_setup_remote_control"
-        )
+        self._btn_setup_remote_control.setObjectName("btn_setup_remote_control")
         self._btn_setup_remote_control.setAccessibleName(
             "Set up Remote Control authentication button"
         )
@@ -622,19 +620,13 @@ class ConnectionForm(QWidget):
             "Optional override for the session label shown in the claude.ai "
             "session list. Defaults to this connection's name."
         )
-        self._edit_remote_control_name.setPlaceholderText(
-            "(auto: connection name)"
-        )
+        self._edit_remote_control_name.setPlaceholderText("(auto: connection name)")
         self._err_remote_control_name = QLabel()
         self._err_remote_control_name.setObjectName("error_remote_control_name")
-        self._err_remote_control_name.setAccessibleName(
-            "Remote Control name error label"
-        )
+        self._err_remote_control_name.setAccessibleName("Remote Control name error label")
         self._err_remote_control_name.setStyleSheet("color: red;")
         self._err_remote_control_name.setVisible(False)
-        advf.addRow(
-            self._lbl_remote_control_name, self._edit_remote_control_name
-        )
+        advf.addRow(self._lbl_remote_control_name, self._edit_remote_control_name)
         advf.addRow("", self._err_remote_control_name)
 
         self._lbl_tags = QLabel("Tags")
@@ -683,9 +675,7 @@ class ConnectionForm(QWidget):
         self._edit_remote_control_name.editingFinished.connect(
             lambda: self._validate_field("remote_control_name")
         )
-        self._btn_setup_remote_control.clicked.connect(
-            self.remote_control_auth_requested.emit
-        )
+        self._btn_setup_remote_control.clicked.connect(self.remote_control_auth_requested.emit)
         self._btn_new_key.clicked.connect(self.new_key_requested.emit)
 
     # ------------------------------------------------------------------
@@ -912,17 +902,13 @@ class ConnectionForm(QWidget):
                 error,
             )
 
-        elif field == "remote_control_name" and _field_visible(
-            "remote_control_name", profile
-        ):
+        elif field == "remote_control_name" and _field_visible("remote_control_name", profile):
             val = self._edit_remote_control_name.text().strip()
             if val:
                 from cpsm.data.schema import _RC_NAME_RE
+
                 if not _RC_NAME_RE.match(val):
-                    error = (
-                        "Letters, digits, dash, underscore and dot only — "
-                        "no whitespace"
-                    )
+                    error = "Letters, digits, dash, underscore and dot only — no whitespace"
             self._set_field_error(
                 "remote_control_name",
                 self._edit_remote_control_name,
@@ -1213,9 +1199,7 @@ class ConnectionForm(QWidget):
         # must NOT include the keys at all — the Pydantic models use
         # ``extra="forbid"``, so an extra key would raise ValidationError.
         if _field_visible("remote_control_enabled", profile):
-            data["remote_control_enabled"] = (
-                self._chk_remote_control_enabled.isChecked()
-            )
+            data["remote_control_enabled"] = self._chk_remote_control_enabled.isChecked()
             rc_name = self._edit_remote_control_name.text().strip()
             data["remote_control_name"] = rc_name or None
 

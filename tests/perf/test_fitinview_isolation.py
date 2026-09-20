@@ -198,17 +198,13 @@ class TestTightLoopGrowthIsAHarnessArtifact:
             gc.collect()
         return (native_heap_bytes() - base) / self.ITERS
 
-    def test_tight_loop_grows_but_any_yield_removes_it(
-        self, view: ScreenMapWidget
-    ) -> None:
+    def test_tight_loop_grows_but_any_yield_removes_it(self, view: ScreenMapWidget) -> None:
         from PySide6.QtWidgets import QApplication
 
         app = QApplication.instance()
 
         tight = self._measure(view, lambda i: None)
-        paced = self._measure(
-            view, lambda i: app.processEvents() if i % 50 == 0 else None
-        )
+        paced = self._measure(view, lambda i: app.processEvents() if i % 50 == 0 else None)
 
         text = (
             f"--- fitInView: tight loop vs yielding (CORRECTION 8) ---\n"

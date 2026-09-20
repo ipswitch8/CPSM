@@ -30,25 +30,25 @@ import logging
 import os
 import re
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from cpsm.data.schema import CpsmDocument
+from cpsm.platform.child_env import child_env
 from cpsm.services.discovery_service import DiscoveredSession
 
 __all__ = [
+    "_PROBE_SCRIPT",
     "CorrelationResult",
     "CorrelationService",
     "RemoteSession",
-    "_PROBE_SCRIPT",
     "get_local_source_ports",
     "parse_probe_output",
 ]
 
 logger = logging.getLogger(__name__)
-from cpsm.platform.child_env import child_env
-
 
 # ---------------------------------------------------------------------------
 # Probe script — runs on the remote host
@@ -102,9 +102,9 @@ class RemoteSession:
 
     sshd_pid: int
     source_port: int  # client (local end) port, matches local ssh's local port
-    fg_pid: int       # foreground process under sshd
-    cwd: str          # foreground process's working directory
-    cmd: str          # foreground process's argv (joined)
+    fg_pid: int  # foreground process under sshd
+    cwd: str  # foreground process's working directory
+    cmd: str  # foreground process's argv (joined)
 
 
 @dataclass(frozen=True)
@@ -129,9 +129,7 @@ class CorrelationResult:
 # ---------------------------------------------------------------------------
 
 
-def get_local_source_ports(
-    pids: list[int], *, proc_root: str = "/proc"
-) -> dict[int, int]:
+def get_local_source_ports(pids: list[int], *, proc_root: str = "/proc") -> dict[int, int]:
     """Return ``{pid: source_port}`` for each local ssh process.
 
     Walks ``/proc/<pid>/fd`` to find socket inodes, then matches them against
@@ -244,13 +242,15 @@ def parse_probe_output(text: str) -> list[RemoteSession]:
             fg_pid = int(fg_pid_s)
         except ValueError:
             continue
-        out.append(RemoteSession(
-            sshd_pid=sshd_pid,
-            source_port=src_port,
-            fg_pid=fg_pid,
-            cwd=cwd,
-            cmd=cmd,
-        ))
+        out.append(
+            RemoteSession(
+                sshd_pid=sshd_pid,
+                source_port=src_port,
+                fg_pid=fg_pid,
+                cwd=cwd,
+                cmd=cmd,
+            )
+        )
     return out
 
 
@@ -301,9 +301,7 @@ class CorrelationService:
         self._prober = ssh_prober or _run_probe_via_subprocess
         self._proc_root = proc_root
 
-    def correlate(
-        self, doc: CpsmDocument, sessions: list[DiscoveredSession]
-    ) -> CorrelationResult:
+    def correlate(self, doc: CpsmDocument, sessions: list[DiscoveredSession]) -> CorrelationResult:
         """Return an updated PID → connection_id mapping for *sessions*.
 
         Only SSH-based discovered sessions on hosts with ≥ 2 sibling
@@ -331,25 +329,36 @@ class CorrelationService:
         )
         for (host, user), bucket in by_host.items():
             candidates = [
-                c for c in doc.connections
+                c
+                for c in doc.connections
                 if getattr(c, "host", "") == host
                 and getattr(c, "launch_profile", "") in ("claude-remote", "ssh-shell")
             ]
             logger.info(
                 "Correlation: host=%s user=%s sessions=%d candidates=%d",
-                host, user, len(bucket), len(candidates),
+                host,
+                user,
+                len(bucket),
+                len(candidates),
             )
             if len(candidates) < 2:
                 logger.info(
-                    "Correlation: skipping %s — fewer than 2 candidates", host,
+                    "Correlation: skipping %s — fewer than 2 candidates",
+                    host,
                 )
                 continue  # no ambiguity to resolve
             mapping, cwd_map = self._correlate_one_host(
-                host, user, bucket, candidates, keys_by_id,
+                host,
+                user,
+                bucket,
+                candidates,
+                keys_by_id,
             )
             logger.info(
                 "Correlation: host=%s probe produced %d mapping(s), %d cwd(s)",
-                host, len(mapping), len(cwd_map),
+                host,
+                len(mapping),
+                len(cwd_map),
             )
             out.update(mapping)
             cwds.update(cwd_map)
@@ -370,11 +379,14 @@ class CorrelationService:
         a Connection — surfaces useful diagnostic info in tooltips."""
         # Collect local source ports for these PIDs.
         port_by_pid = get_local_source_ports(
-            [s.pid for s in sessions], proc_root=self._proc_root,
+            [s.pid for s in sessions],
+            proc_root=self._proc_root,
         )
         logger.info(
             "Correlation %s: %d/%d local source-port lookups succeeded",
-            host, len(port_by_pid), len(sessions),
+            host,
+            len(port_by_pid),
+            len(sessions),
         )
         if not port_by_pid:
             logger.warning(
@@ -393,7 +405,10 @@ class CorrelationService:
             return {}, {}
         logger.info(
             "Correlation %s: probing as user=%s port=%d key_path=%r",
-            host, prober_user, port, key_path or "(default)",
+            host,
+            prober_user,
+            port,
+            key_path or "(default)",
         )
 
         try:
@@ -403,7 +418,8 @@ class CorrelationService:
             return {}, {}
         logger.info(
             "Correlation %s: probe returned %d byte(s) of output",
-            host, len(output),
+            host,
+            len(output),
         )
         remote_home = parse_probe_home(output)
         if remote_home:
@@ -411,7 +427,8 @@ class CorrelationService:
         remote = parse_probe_output(output)
         logger.info(
             "Correlation %s: parsed %d remote session(s) from probe",
-            host, len(remote),
+            host,
+            len(remote),
         )
         if not remote:
             if output:
@@ -419,7 +436,8 @@ class CorrelationService:
                 # CPSM_PROBE lines, log the first 200 chars at debug.
                 logger.debug(
                     "Correlation %s: probe output preview: %r",
-                    host, output[:200],
+                    host,
+                    output[:200],
                 )
             return {}, {}
 
@@ -431,7 +449,9 @@ class CorrelationService:
                 cwd_by_pid[pid] = cwd_by_port[src_port]
         logger.info(
             "Correlation %s: %d/%d pids paired with remote cwds via source-port",
-            host, len(cwd_by_pid), len(port_by_pid),
+            host,
+            len(cwd_by_pid),
+            len(port_by_pid),
         )
 
         # Match cwd → Connection.project_folder.
@@ -448,10 +468,11 @@ class CorrelationService:
                 # or a trailing-segment difference).
                 logger.info(
                     "Correlation %s: pid=%d cwd=%r did not match any of: %s",
-                    host, pid, cwd,
+                    host,
+                    pid,
+                    cwd,
                     ", ".join(
-                        f"{c.id}=>{getattr(c, 'project_folder', '') or ''!r}"
-                        for c in candidates
+                        f"{c.id}=>{getattr(c, 'project_folder', '') or ''!r}" for c in candidates
                     ),
                 )
         # Always return the cwd map even when no Connection matched —
@@ -465,7 +486,10 @@ class CorrelationService:
 
 
 def _run_probe_via_subprocess(
-    host: str, user: str, key_path: str, port: int,
+    host: str,
+    user: str,
+    key_path: str,
+    port: int,
 ) -> str:
     """Execute the probe script on *host* via ssh.  Returns stdout text.
 
@@ -492,9 +516,12 @@ def _run_probe_via_subprocess(
     )
     logger.info(
         "Correlation %s: spawning ssh probe (user=%s port=%d): %s",
-        host, user, port, " ".join(argv),
+        host,
+        user,
+        port,
+        " ".join(argv),
     )
-    result = subprocess.run(  # noqa: S603 - controlled argv from SshBinary
+    result = subprocess.run(
         argv,
         capture_output=True,
         text=True,
@@ -509,7 +536,10 @@ def _run_probe_via_subprocess(
     if result.returncode != 0 or not stdout.strip():
         logger.warning(
             "Correlation %s: ssh probe exited rc=%d stdout=%dB stderr=%r",
-            host, result.returncode, len(stdout), stderr[:500],
+            host,
+            result.returncode,
+            len(stdout),
+            stderr[:500],
         )
     elif stderr.strip():
         # Some hosts emit MOTD/banners on stderr even with BatchMode; log at
@@ -607,12 +637,10 @@ def _paths_equal(a: str, b: str, *, remote_home: str = "") -> bool:
     # Strategy 2b — heuristic tilde-suffix matching with home-shape guard.
     a_tail = _post_tilde(norm_a)
     b_tail = _post_tilde(norm_b)
-    if a_tail and _is_home_rooted_path_with_suffix(norm_b, a_tail):
-        return True
-    if b_tail and _is_home_rooted_path_with_suffix(norm_a, b_tail):
-        return True
-
-    return False
+    return bool(
+        (a_tail and _is_home_rooted_path_with_suffix(norm_b, a_tail))
+        or (b_tail and _is_home_rooted_path_with_suffix(norm_a, b_tail))
+    )
 
 
 def _post_tilde(path: str) -> str | None:
@@ -642,10 +670,10 @@ def _expand_tilde_against(path: str, home: str) -> str:
 # ``~/work`` matches ``/root/work`` or ``/home/ubuntu/work`` but NOT
 # ``/usr/local/work`` or ``/var/log/work``.
 _HOME_LIKE_RES: tuple[re.Pattern[str], ...] = (
-    re.compile(r"^/root/"),                    # root user
-    re.compile(r"^/home/[^/]+/"),              # /home/<user>/
-    re.compile(r"^/var/lib/[^/]+/"),           # daemon-style homes
-    re.compile(r"^/Users/[^/]+/"),             # macOS
+    re.compile(r"^/root/"),  # root user
+    re.compile(r"^/home/[^/]+/"),  # /home/<user>/
+    re.compile(r"^/var/lib/[^/]+/"),  # daemon-style homes
+    re.compile(r"^/Users/[^/]+/"),  # macOS
 )
 
 
@@ -662,9 +690,7 @@ def _is_home_rooted_path_with_suffix(path: str, suffix: str) -> bool:
     suffix = suffix.lstrip("/")
     if not suffix:
         # ``~/`` or ``~`` — only match the bare home directories.
-        return any(rx.match(path + "/") for rx in _HOME_LIKE_RES) and (
-            path.count("/") <= 3
-        )
+        return any(rx.match(path + "/") for rx in _HOME_LIKE_RES) and (path.count("/") <= 3)
     if not path.endswith("/" + suffix):
         return False
     return any(rx.match(path) for rx in _HOME_LIKE_RES)

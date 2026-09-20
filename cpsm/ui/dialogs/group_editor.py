@@ -488,8 +488,8 @@ class GroupEditorDialog(QDialog):
             btn_rename.setAccessibleDescription(f"Rename layout {sl.name}")
             btn_rename.setFixedWidth(60)
             btn_rename.clicked.connect(
-                lambda _checked=False, layout_id=sl.id, r_lbl=lbl, r_item=item: self._on_rename_layout(
-                    layout_id, r_lbl, r_item
+                lambda _checked=False, layout_id=sl.id, r_lbl=lbl, r_item=item: (
+                    self._on_rename_layout(layout_id, r_lbl, r_item)
                 )
             )
             row_layout.addWidget(btn_rename)

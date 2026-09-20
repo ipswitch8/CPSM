@@ -175,9 +175,7 @@ class TestInstallDesktopEntry:
         assert "Exec=/explicit/cpsm gui %u" in body
         assert "/usr/bin/cpsm-from-which" not in body
 
-    def test_transient_appimage_mount_is_rejected(
-        self, fake_xdg, monkeypatch, tmp_path
-    ) -> None:
+    def test_transient_appimage_mount_is_rejected(self, fake_xdg, monkeypatch, tmp_path) -> None:
         """`shutil.which` inside a running AppImage returns the FUSE mount
         path (``/tmp/.mount_*/usr/bin/cpsm``).  That path vanishes on
         AppImage exit, so _resolve_executable must NOT bake it into the

@@ -317,6 +317,7 @@ class KeyService:
         # would never appear). Pass via SSHPASS env var so it never lands in
         # argv (which would be visible in `ps`).
         import shutil as _shutil
+
         env: dict[str, str] | None = None
         sshpass_prefix: list[str] = []
         # When deploying with a password we want pubkey auth completely out
@@ -332,9 +333,12 @@ class KeyService:
                 env = {k: v for k, v in os.environ.items() if k != "SSH_AUTH_SOCK"}
                 env["SSHPASS"] = password
                 password_auth_opts = [
-                    "-o", "PreferredAuthentications=password,keyboard-interactive",
-                    "-o", "PubkeyAuthentication=no",
-                    "-o", "IdentityAgent=none",
+                    "-o",
+                    "PreferredAuthentications=password,keyboard-interactive",
+                    "-o",
+                    "PubkeyAuthentication=no",
+                    "-o",
+                    "IdentityAgent=none",
                 ]
             else:
                 _zero_password(password)
@@ -406,7 +410,9 @@ class KeyService:
             # authorized_keys and checking the pubkey is actually present.
             if self._verify_pubkey_in_remote(
                 pub_key_content=pub_key_content,
-                user=user, host=host, port=port,
+                user=user,
+                host=host,
+                port=port,
                 sshpass_prefix=sshpass_prefix,
                 password_auth_opts=password_auth_opts,
                 env=env,
@@ -414,8 +420,7 @@ class KeyService:
                 _zero_password(password)
                 return DeployResult(success=True, method="ssh-copy-id")
             attempts.append(
-                "ssh-copy-id returned 0 but the public key is not in remote "
-                "~/.ssh/authorized_keys"
+                "ssh-copy-id returned 0 but the public key is not in remote ~/.ssh/authorized_keys"
             )
             logger.warning(
                 "ssh-copy-id reported success for key '%s' but pubkey not "
@@ -472,7 +477,9 @@ class KeyService:
         # Verify the manual deployment too — same reason as above.
         if not self._verify_pubkey_in_remote(
             pub_key_content=pub_key_content,
-            user=user, host=host, port=port,
+            user=user,
+            host=host,
+            port=port,
             sshpass_prefix=sshpass_prefix,
             password_auth_opts=password_auth_opts,
             env=env,
@@ -513,25 +520,34 @@ class KeyService:
         argv = [
             *sshpass_prefix,
             "ssh",
-            "-p", str(port),
-            "-o", "ConnectTimeout=10",
-            "-o", "StrictHostKeyChecking=accept-new",
+            "-p",
+            str(port),
+            "-o",
+            "ConnectTimeout=10",
+            "-o",
+            "StrictHostKeyChecking=accept-new",
             *password_auth_opts,
             f"{user}@{host}",
             "cat ~/.ssh/authorized_keys 2>/dev/null || true",
         ]
         try:
             result = self._runner.run(
-                argv, timeout=15, check=False, env=env,
+                argv,
+                timeout=15,
+                check=False,
+                env=env,
             )
         except Exception as exc:
             logger.warning("Pubkey-presence verification raised: %s", exc)
             return False
         if result.returncode != 0:
             logger.warning(
-                "Pubkey-presence verification ssh failed for %s@%s:%s — "
-                "rc=%d, stderr=%s",
-                user, host, port, result.returncode, result.stderr.strip(),
+                "Pubkey-presence verification ssh failed for %s@%s:%s — rc=%d, stderr=%s",
+                user,
+                host,
+                port,
+                result.returncode,
+                result.stderr.strip(),
             )
             return False
         # Parse line-by-line so a previous entry without a trailing newline
@@ -545,7 +561,6 @@ class KeyService:
             if body in line.split():
                 return True
         return False
-
 
     def _derive_public_from_private(
         self,
@@ -566,6 +581,7 @@ class KeyService:
         if key.passphrase_ref is not None:
             try:
                 import keyring  # local import — keyring is optional
+
                 pw = keyring.get_password(_KEYRING_SERVICE, key.id)
                 if pw:
                     passphrase_bytes = pw.encode("utf-8")

@@ -23,6 +23,7 @@ from cpsm.data.schema import (
     CpsmDocument,
     Group,
 )
+from cpsm.services.discovery_service import DiscoveredSession
 from cpsm.ui.widgets.session_list import SessionListWidget
 
 
@@ -92,9 +93,7 @@ class TestDefaultSort:
         c_orph_b = _conn("c-b", "Bumblebee")
         c_orph_a = _conn("c-a", "Aardvark")
         grp = Group(id="g1", name="grp", members=["c-in"])
-        doc = CpsmDocument(
-            connections=[c_in, c_orph_b, c_orph_a], groups=[grp]
-        )
+        doc = CpsmDocument(connections=[c_in, c_orph_b, c_orph_a], groups=[grp])
 
         widget.load_document(doc)
         items = _conn_items(widget)
@@ -266,13 +265,26 @@ class TestTreeRebuiltSignal:
 class TestDiscoveredCategory:
     """Sidebar Discovered category populated via set_discovered_sessions()."""
 
-    def _ds(self, *, pid: int, kind: str = "claude-local",
-            cwd: str = "/tmp/p", host: str = "", user: str = "",
-            suggested: str = "") -> "DiscoveredSession":
+    def _ds(
+        self,
+        *,
+        pid: int,
+        kind: str = "claude-local",
+        cwd: str = "/tmp/p",
+        host: str = "",
+        user: str = "",
+        suggested: str = "",
+    ) -> DiscoveredSession:
         from cpsm.services.discovery_service import DiscoveredSession
+
         return DiscoveredSession(
-            pid=pid, kind=kind, cmdline=f"{kind} fake",
-            cwd=cwd, host=host, user=user, tty="/dev/pts/9",
+            pid=pid,
+            kind=kind,
+            cmdline=f"{kind} fake",
+            cwd=cwd,
+            host=host,
+            user=user,
+            tty="/dev/pts/9",
             suggested_connection_id=suggested,
         )
 
@@ -303,17 +315,15 @@ class TestDiscoveredCategory:
         assert widget.get_discovered_session(1) is None
 
     def test_label_includes_pid_for_claude_local(self, widget) -> None:
-        widget.set_discovered_sessions([
-            self._ds(pid=42, kind="claude-local", cwd="/tmp/proj")
-        ])
+        widget.set_discovered_sessions([self._ds(pid=42, kind="claude-local", cwd="/tmp/proj")])
         text = widget._cat_discovered.child(0).text(0)
         assert "PID 42" in text
         assert "/tmp/proj" in text
 
     def test_label_for_ssh_uses_user_at_host(self, widget) -> None:
-        widget.set_discovered_sessions([
-            self._ds(pid=42, kind="ssh-shell", host="dev.example.com", user="ubuntu")
-        ])
+        widget.set_discovered_sessions(
+            [self._ds(pid=42, kind="ssh-shell", host="dev.example.com", user="ubuntu")]
+        )
         text = widget._cat_discovered.child(0).text(0)
         assert "ubuntu@dev.example.com" in text
 
@@ -324,10 +334,13 @@ class TestDiscoveredCategory:
         c = _conn("dotfiles", "Dotfiles")
         doc = CpsmDocument(connections=[c], groups=[])
         widget.load_document(doc)
-        widget.set_discovered_sessions([
-            self._ds(pid=99, kind="claude-local", cwd="/home/user/dotfiles",
-                     suggested="dotfiles"),
-        ])
+        widget.set_discovered_sessions(
+            [
+                self._ds(
+                    pid=99, kind="claude-local", cwd="/home/user/dotfiles", suggested="dotfiles"
+                ),
+            ]
+        )
         # Discovered (unmatched) is hidden — the only session matched.
         assert widget._cat_discovered.isHidden()
         # Connection has exactly one sub-row tagged with the discovered pid.
@@ -345,9 +358,11 @@ class TestDiscoveredCategory:
         c = _conn("dotfiles", "Dotfiles")
         doc = CpsmDocument(connections=[c], groups=[])
         widget.load_document(doc)
-        widget.set_discovered_sessions([
-            self._ds(pid=99, kind="claude-local", cwd="/x", suggested="dotfiles"),
-        ])
+        widget.set_discovered_sessions(
+            [
+                self._ds(pid=99, kind="claude-local", cwd="/x", suggested="dotfiles"),
+            ]
+        )
         conn_item = widget._cat_connections.child(0)
         assert conn_item.isExpanded()
 
@@ -355,10 +370,12 @@ class TestDiscoveredCategory:
         c = _conn("dotfiles", "Dotfiles")
         doc = CpsmDocument(connections=[c], groups=[])
         widget.load_document(doc)
-        widget.set_discovered_sessions([
-            self._ds(pid=99, kind="claude-local", cwd="/x", suggested="dotfiles"),
-            self._ds(pid=100, kind="claude-local", cwd="/x", suggested="dotfiles"),
-        ])
+        widget.set_discovered_sessions(
+            [
+                self._ds(pid=99, kind="claude-local", cwd="/x", suggested="dotfiles"),
+                self._ds(pid=100, kind="claude-local", cwd="/x", suggested="dotfiles"),
+            ]
+        )
         conn_item = widget._cat_connections.child(0)
         assert conn_item.childCount() == 2
         sub_pids = [
@@ -371,18 +388,17 @@ class TestDiscoveredCategory:
         c = _conn("dotfiles", "Dotfiles")
         doc = CpsmDocument(connections=[c], groups=[])
         widget.load_document(doc)
-        widget.set_discovered_sessions([
-            self._ds(pid=88, kind="claude-local", cwd="/tmp/p"),  # suggested=""
-        ])
+        widget.set_discovered_sessions(
+            [
+                self._ds(pid=88, kind="claude-local", cwd="/tmp/p"),  # suggested=""
+            ]
+        )
         # Connection has no sub-rows.
         assert widget._cat_connections.child(0).childCount() == 0
         # Unmatched category visible with one row.
         assert not widget._cat_discovered.isHidden()
         assert widget._cat_discovered.childCount() == 1
-        assert (
-            widget._cat_discovered.child(0).data(0, Qt.ItemDataRole.UserRole)
-            == "discovered:88"
-        )
+        assert widget._cat_discovered.child(0).data(0, Qt.ItemDataRole.UserRole) == "discovered:88"
 
     def test_subrow_is_not_draggable(self, widget) -> None:
         """Discovered sub-rows are not Connections — they shouldn't fire
@@ -390,8 +406,10 @@ class TestDiscoveredCategory:
         c = _conn("dotfiles", "Dotfiles")
         doc = CpsmDocument(connections=[c], groups=[])
         widget.load_document(doc)
-        widget.set_discovered_sessions([
-            self._ds(pid=99, kind="claude-local", cwd="/x", suggested="dotfiles"),
-        ])
+        widget.set_discovered_sessions(
+            [
+                self._ds(pid=99, kind="claude-local", cwd="/x", suggested="dotfiles"),
+            ]
+        )
         sub = widget._cat_connections.child(0).child(0)
         assert not bool(sub.flags() & Qt.ItemFlag.ItemIsDragEnabled)

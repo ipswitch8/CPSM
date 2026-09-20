@@ -27,9 +27,9 @@ from __future__ import annotations
 import logging
 import re
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 from cpsm.platform.process_runner import ProcessRunner
 from cpsm.platform.ssh_binary import SshBinary
@@ -221,7 +221,11 @@ class RemoteControlService:
 
         # 3. ANTHROPIC_API_KEY
         stdout, stderr, rc = self._probe(
-            host, user, port, key_path, "printenv ANTHROPIC_API_KEY 2>/dev/null || true",
+            host,
+            user,
+            port,
+            key_path,
+            "printenv ANTHROPIC_API_KEY 2>/dev/null || true",
         )
         api_key_set = bool(stdout.strip())
         if api_key_set:
@@ -258,9 +262,12 @@ class RemoteControlService:
         Used by the wizard to detect when /login has completed.  Uses
         ``test -f`` so the probe returns 0/1 cleanly.
         """
-        stdout, stderr, rc = self._probe(
-            host, user, port, key_path,
-            "test -f \"$HOME/.claude/.credentials.json\" && echo OK || echo NO",
+        stdout, _stderr, rc = self._probe(
+            host,
+            user,
+            port,
+            key_path,
+            'test -f "$HOME/.claude/.credentials.json" && echo OK || echo NO',
         )
         return rc == 0 and stdout.strip() == "OK"
 

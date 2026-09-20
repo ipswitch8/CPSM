@@ -137,9 +137,7 @@ class LeakReport:
             lines.append(f"  exercised            : {self.note}")
         if self.qt_type_histogram:
             lines.append("  leaked Qt types (net live-instance delta):")
-            for name, delta in sorted(
-                self.qt_type_histogram.items(), key=lambda kv: -kv[1]
-            )[:12]:
+            for name, delta in sorted(self.qt_type_histogram.items(), key=lambda kv: -kv[1])[:12]:
                 lines.append(f"      {delta:+8d}  {name}")
         if self.top_python_sites:
             lines.append("  top python allocation sites:")

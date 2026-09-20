@@ -254,29 +254,23 @@ class TestValidate:
         messages = [i.message for i in issues]
 
         assert any("jump_host" in m for m in messages), "jump_host FK not surfaced"
-        assert any("identity_file_ref" in m for m in messages), (
-            "identity_file_ref FK not surfaced"
-        )
+        assert any("identity_file_ref" in m for m in messages), "identity_file_ref FK not surfaced"
         assert any("custom_template_id" in m for m in messages), (
             "custom_template_id FK not surfaced"
         )
-        assert any(
-            "member" in m and "ghost-member" in m for m in messages
-        ), "group members FK not surfaced"
-        assert any(
-            "default_layout_id" in m for m in messages
-        ), "default_layout_id FK not surfaced"
+        assert any("member" in m and "ghost-member" in m for m in messages), (
+            "group members FK not surfaced"
+        )
+        assert any("default_layout_id" in m for m in messages), "default_layout_id FK not surfaced"
         assert any("inherits_from" in m for m in messages), "inherits_from FK not surfaced"
-        assert any(
-            "pane connection_id" in m and "ghost-pane-conn" in m for m in messages
-        ), "pane connection_id FK not surfaced"
-        assert any(
-            "group" in m and "ghost-group" in m for m in messages
-        ), "scene groups FK not surfaced"
+        assert any("pane connection_id" in m and "ghost-pane-conn" in m for m in messages), (
+            "pane connection_id FK not surfaced"
+        )
+        assert any("group" in m and "ghost-group" in m for m in messages), (
+            "scene groups FK not surfaced"
+        )
 
-    def test_validate_structural_error_short_circuits(
-        self, service: ConfigService
-    ) -> None:
+    def test_validate_structural_error_short_circuits(self, service: ConfigService) -> None:
         """A structural pydantic ValidationError (e.g. bad enum) is
         returned without also running the FK walker — trying to walk an
         object that failed structural parsing is meaningless.
@@ -495,8 +489,7 @@ class TestPinnedKeyRoundTripsThroughRealSaveLoad:
 
         issues = service.validate(reloaded)
         assert any(
-            "does-not-exist" in i.message or "does-not-exist" in i.location
-            for i in issues
+            "does-not-exist" in i.message or "does-not-exist" in i.location for i in issues
         ), f"validate() failed to flag a dangling identity_file_ref: {issues}"
 
     def test_save_and_load_never_touch_real_cpsm_yaml(

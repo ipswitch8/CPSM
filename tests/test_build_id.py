@@ -21,7 +21,7 @@ from cpsm import __version__, build_id, version_string
 
 def _fake_stamp(monkeypatch, commit="deadbee"):
     mod = types.ModuleType("cpsm._build_stamp")
-    mod.COMMIT = commit          # type: ignore[attr-defined]
+    mod.COMMIT = commit  # type: ignore[attr-defined]
     mod.BUILT_AT = "2026-09-04T00:00:00Z"  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "cpsm._build_stamp", mod)
     monkeypatch.setattr(cpsm, "_build_stamp", mod, raising=False)
@@ -56,6 +56,7 @@ class TestBuildId:
 
     def test_never_raises_when_git_is_unavailable(self, monkeypatch, _no_stamp):
         """A version string is not worth crashing a launch over."""
+
         def _boom(*a, **kw):
             raise OSError("git not found")
 
@@ -95,19 +96,18 @@ class TestStampDoesNotShadowSource:
         monkeypatch.setattr(cpsm, "_source_root", lambda: tmp_path)
         assert build_id() == "unknown"
 
-    def test_checkout_without_working_git_reports_unknown(
-        self, monkeypatch, tmp_path
-    ):
+    def test_checkout_without_working_git_reports_unknown(self, monkeypatch, tmp_path):
         """No git means no way to tell whether the stamp still applies.
 
         Reporting the stamp anyway would be exactly the confident-but-wrong
         answer this class exists to prevent, so it degrades to "unknown".
         """
         _fake_stamp(monkeypatch, "deadbee")
-        (tmp_path / ".git").mkdir()          # looks like a checkout
+        (tmp_path / ".git").mkdir()  # looks like a checkout
         monkeypatch.setattr(cpsm, "_source_root", lambda: tmp_path)
-        monkeypatch.setattr("cpsm.subprocess.run",
-                            lambda *a, **kw: (_ for _ in ()).throw(OSError("no git")))
+        monkeypatch.setattr(
+            "cpsm.subprocess.run", lambda *a, **kw: (_ for _ in ()).throw(OSError("no git"))
+        )
         assert build_id() == "unknown"
 
     def test_dirty_tree_is_flagged(self, monkeypatch, tmp_path):
@@ -120,13 +120,15 @@ class TestStampDoesNotShadowSource:
 
         class _R:
             returncode = 0
-            def __init__(self, out): self.stdout = out
+
+            def __init__(self, out):
+                self.stdout = out
 
         def _fake_run(argv, **kw):
             calls["n"] += 1
             if "rev-parse" in argv:
                 return _R("abc1234")
-            return _R(" M cpsm/cli.py")      # status --porcelain: dirty
+            return _R(" M cpsm/cli.py")  # status --porcelain: dirty
 
         monkeypatch.setattr("cpsm.subprocess.run", _fake_run)
         assert build_id() == "abc1234-dirty"

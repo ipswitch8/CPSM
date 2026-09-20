@@ -63,8 +63,7 @@ class TestInstallerCopiesAgree:
         text = (ROOT / "install.sh").read_text(encoding="utf-8")
         assert "install-desktop" in text
         assert "--executable" in text, (
-            "install-desktop is invoked without --executable, so Exec= is "
-            "resolved from PATH"
+            "install-desktop is invoked without --executable, so Exec= is resolved from PATH"
         )
 
     def test_system_install_registers_for_every_user(self):

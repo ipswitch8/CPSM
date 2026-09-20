@@ -65,13 +65,9 @@ def _layout_with_panes(monitors: list[Any], panes_per_viewport: int) -> ScreenLa
             id=f"vp-{mi}",
             geometry_pct=GeometryPct(x=0, y=0, w=100, h=100),
             tmux_layout="tiled",
-            panes=[
-                Pane(connection_id=f"conn-{mi}-{p}") for p in range(panes_per_viewport)
-            ],
+            panes=[Pane(connection_id=f"conn-{mi}-{p}") for p in range(panes_per_viewport)],
         )
-        mons.append(
-            Monitor(identifier=info.identifier, monitor_index_hint=mi, viewports=[vp])
-        )
+        mons.append(Monitor(identifier=info.identifier, monitor_index_hint=mi, viewports=[vp]))
     return ScreenLayout(id="layout-scale", name="layout-scale", monitors=mons)
 
 

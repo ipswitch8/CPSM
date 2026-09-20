@@ -18,8 +18,6 @@ import re
 import subprocess
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parent.parent
 INSTALL_SH = ROOT / "install.sh"
 
@@ -202,9 +200,7 @@ chmod 555 "$HOME/.local/opt"
         files under the user's home. Safety here comes from the path checks,
         not from the uid.
         """
-        body = _extract_function("cleanup_shadowing_install") + _extract_function(
-            "try_remove"
-        )
+        body = _extract_function("cleanup_shadowing_install") + _extract_function("try_remove")
         assert "sudo -u" not in body, (
             "the cleanup drops privileges again; it will fail to remove "
             "root-owned leftovers from an earlier system install"
@@ -217,6 +213,7 @@ chmod 555 "$HOME/.local/opt"
             "cleanup_shadowing_install is called without || true, so an "
             "unexpected failure aborts the install before register_desktop"
         )
+
 
 def _desktop(exec_path: str) -> str:
     """Shell that writes a per-user cpsm.desktop with the given Exec=."""
@@ -260,9 +257,7 @@ class TestStaleLauncherIsRemoved:
         # It still decides what launches, so the warning has to say so.
         assert "precedence" in out, out
 
-    def test_stale_entry_is_cleaned_even_when_the_install_is_already_gone(
-        self, tmp_path
-    ):
+    def test_stale_entry_is_cleaned_even_when_the_install_is_already_gone(self, tmp_path):
         """The state a half-finished cleanup leaves behind.
 
         The install directory and symlink are already removed, so the earlier
@@ -299,9 +294,7 @@ class TestStaleLauncherIsRemoved:
 
     def test_quoted_exec_path_is_still_matched(self, tmp_path):
         """Anchoring must not be defeated by ordinary quoting."""
-        setup = _make_real_install() + _desktop(
-            '"$HOME/.local/opt/cpsm/cpsm.AppImage"'
-        )
+        setup = _make_real_install() + _desktop('"$HOME/.local/opt/cpsm/cpsm.AppImage"')
         rc, out = _run(tmp_path, setup=setup)
         assert rc == 0, out
         assert "DESKTOP_GONE" in out, out

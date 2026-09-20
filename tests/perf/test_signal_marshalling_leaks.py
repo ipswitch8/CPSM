@@ -75,9 +75,7 @@ class TestQueuedSignalMarshalling:
     def test_measure_queued_poll_complete(self, qtbot: Any) -> None:
         emitter = _Emitter()
         receiver = _Receiver()
-        emitter.poll_complete.connect(
-            receiver.on_poll_complete, Qt.ConnectionType.QueuedConnection
-        )
+        emitter.poll_complete.connect(receiver.on_poll_complete, Qt.ConnectionType.QueuedConnection)
         statuses = _statuses()
         app = QCoreApplication.instance()
 
@@ -88,9 +86,7 @@ class TestQueuedSignalMarshalling:
         cycle(0)
         assert receiver.polls > 0, "queued signal never delivered — path not exercised"
 
-        report = measure_leak(
-            "queued Signal(list) poll_complete", cycle, iterations=ITERATIONS
-        )
+        report = measure_leak("queued Signal(list) poll_complete", cycle, iterations=ITERATIONS)
         report.note = f"deliveries: {receiver.polls}"
         print("\n" + report.format())
         _record(report)
@@ -99,9 +95,7 @@ class TestQueuedSignalMarshalling:
         """``state_changed`` fires once per pane whose state transitions."""
         emitter = _Emitter()
         receiver = _Receiver()
-        emitter.state_changed.connect(
-            receiver.on_state_changed, Qt.ConnectionType.QueuedConnection
-        )
+        emitter.state_changed.connect(receiver.on_state_changed, Qt.ConnectionType.QueuedConnection)
         status = _statuses()[0]
         app = QCoreApplication.instance()
 
@@ -112,9 +106,7 @@ class TestQueuedSignalMarshalling:
         cycle(0)
         assert receiver.states > 0, "queued signal never delivered — path not exercised"
 
-        report = measure_leak(
-            "queued Signal(object) state_changed", cycle, iterations=ITERATIONS
-        )
+        report = measure_leak("queued Signal(object) state_changed", cycle, iterations=ITERATIONS)
         report.note = f"deliveries: {receiver.states}"
         print("\n" + report.format())
         _record(report)
@@ -153,6 +145,7 @@ class TestCrossThreadEmission:
         worker.poll_complete.connect(receiver.on_poll_complete)
         worker.start()
         try:
+
             def cycle(_i: int) -> None:
                 target = receiver.polls + 1
                 worker._pending += 1

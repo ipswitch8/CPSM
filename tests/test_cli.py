@@ -100,9 +100,7 @@ class TestVersionHelp:
             dispatch(["does-not-exist"])
         assert exc_info.value.code == EXIT_BAD_ARGS
 
-    def test_no_subcommand_defaults_to_gui(
-        self, mocker: pytest_mock.MockerFixture
-    ) -> None:
+    def test_no_subcommand_defaults_to_gui(self, mocker: pytest_mock.MockerFixture) -> None:
         """Bare ``cpsm`` defaults to launching the GUI now (no subcommand
         required). The legacy behavior of exiting with EXIT_BAD_ARGS was
         reverted at the user's request.
@@ -244,9 +242,7 @@ groups:
 """,
             encoding="utf-8",
         )
-        code, out, _err = _dispatch_capture(
-            ["validate", "--config", str(broken), "--json"], capsys
-        )
+        code, out, _err = _dispatch_capture(["validate", "--config", str(broken), "--json"], capsys)
         assert code == EXIT_VALIDATION_FAILED
         payload = json.loads(out)
         assert payload["valid"] is False
@@ -1288,9 +1284,7 @@ class TestDefaultSubcommand:
     to run_gui.
     """
 
-    def test_synthesized_namespace_config_is_none(
-        self, mocker: pytest_mock.MockerFixture
-    ) -> None:
+    def test_synthesized_namespace_config_is_none(self, mocker: pytest_mock.MockerFixture) -> None:
         mock_run = mocker.patch("cpsm.app.run_gui", return_value=EXIT_OK)
         assert dispatch([]) == EXIT_OK
         assert mock_run.called

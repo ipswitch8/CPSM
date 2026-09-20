@@ -63,11 +63,7 @@ def _compute_scale_and_offset(
         min_y = float(min(m.geometry[1] for m in monitors))
         total_w = float(max(m.geometry[0] + m.geometry[2] for m in monitors)) - min_x
         total_h = float(max(m.geometry[1] + m.geometry[3] for m in monitors)) - min_y
-        scale = (
-            min(max_dim / total_w, max_dim / total_h)
-            if (total_w > 0 and total_h > 0)
-            else 0.5
-        )
+        scale = min(max_dim / total_w, max_dim / total_h) if (total_w > 0 and total_h > 0) else 0.5
     else:
         min_x = 0.0
         min_y = 0.0
@@ -357,9 +353,7 @@ class ScreenMapContextMenuMixin:
 
         return menu
 
-    def _cmx_build_pane_menu(
-        self, schema_mon: SchemaMonitor, vp: Viewport, pane_idx: int
-    ) -> QMenu:
+    def _cmx_build_pane_menu(self, schema_mon: SchemaMonitor, vp: Viewport, pane_idx: int) -> QMenu:
         """Menu shown when right-clicking a pane."""
         pane = vp.panes[pane_idx]
         menu = QMenu()
@@ -498,6 +492,7 @@ class ScreenMapContextMenuMixin:
             _flatten_split_tree_leaves,
             split_pane_in_viewport,
         )
+
         new_pane = Pane(connection_id=connection_id)
         if vp.split_tree is None and not vp.panes:
             vp.split_tree = new_pane
@@ -505,12 +500,14 @@ class ScreenMapContextMenuMixin:
         elif vp.split_tree is None:
             # Legacy state — single existing pane, rebuild tree from panes
             from cpsm.data.schema import _resync_viewport_panes
+
             vp.panes.append(new_pane)
             # Trigger migration logic by clearing+rebuilding the tree
             if len(vp.panes) == 1:
                 vp.split_tree = vp.panes[0]
             else:
                 from cpsm.data.schema import Split
+
                 direction = "h" if vp.tmux_layout in ("even-h", "main-h") else "v"
                 vp.split_tree = Split(direction=direction, children=list(vp.panes))
             _resync_viewport_panes(vp)
@@ -539,6 +536,7 @@ class ScreenMapContextMenuMixin:
         if not (0 <= pane_idx < len(vp.panes)):
             return
         from cpsm.data.schema import remove_pane_from_viewport
+
         target = vp.panes[pane_idx]
         remove_pane_from_viewport(vp, target)
         self._cmx_set_layout(self._cmx_get_layout())

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -945,6 +946,7 @@ class TestTmuxLayoutString:
 
     def test_checksum_known_value(self) -> None:
         from cpsm.services.session_service import _tmux_layout_checksum
+
         # Empty body → checksum is 0 (4 hex zeros)
         assert _tmux_layout_checksum("") == "0000"
         # Known: "100x50,0,0,0" → tmux's algo gives a specific value;
@@ -1042,6 +1044,7 @@ class TestReconcileByConnectionId:
         window_index: int = 0,
     ) -> MagicMock:
         from cpsm.platform.base import Pane as PlatformPane
+
         if conn_id is None:
             sc = "bash /tmp/cpsm-launcher-placeholder-vp-1-AbCdEf.sh"
         else:
@@ -1073,15 +1076,22 @@ class TestReconcileByConnectionId:
             panes=[Pane(connection_id=cid) for cid in conn_ids],
         )
         return ScreenLayout(
-            id="ly-1", name="L", monitors=[Monitor(viewports=[vp])],
+            id="ly-1",
+            name="L",
+            monitors=[Monitor(viewports=[vp])],
         )
 
     def _make_doc_with_conns(
-        self, conn_ids: list[str], remote_conn: ClaudeRemoteConnection,
+        self,
+        conn_ids: list[str],
+        remote_conn: ClaudeRemoteConnection,
     ) -> CpsmDocument:
         key = SshKey(
-            id="key-test", name="Test", type="ed25519",
-            private_path="/k", public_path="/k.pub",
+            id="key-test",
+            name="Test",
+            type="ed25519",
+            private_path="/k",
+            public_path="/k.pub",
         )
         connections = [
             ClaudeRemoteConnection(
@@ -1115,6 +1125,7 @@ class TestReconcileByConnectionId:
             new_idx = len(existing) + (next_pid[0] - 4)
             next_pid[0] += 1
             from cpsm.platform.base import Pane as PlatformPane
+
             return PlatformPane(
                 id=new_id,
                 session="cpsm-group-grp-x-mon-0",
@@ -1123,9 +1134,11 @@ class TestReconcileByConnectionId:
                 pid=99,
                 dead=False,
                 current_command="bash",
-                width=80, height=24,
+                width=80,
+                height=24,
                 start_command="",
             )
+
         backend.split_pane.side_effect = _split
         svc = _make_service(doc, backend=backend, tmp_dir=tmp_path)
         warnings: list[str] = []
@@ -1141,7 +1154,9 @@ class TestReconcileByConnectionId:
         return backend, warnings
 
     def test_insert_in_middle_does_not_duplicate(
-        self, remote_conn: ClaudeRemoteConnection, tmp_path: Path,
+        self,
+        remote_conn: ClaudeRemoteConnection,
+        tmp_path: Path,
     ) -> None:
         """Layout [alpha, NEW, beta, gamma] vs running [alpha, beta, gamma]:
         only NEW is split-respawned; alpha/beta/gamma are left alone (no
@@ -1149,7 +1164,8 @@ class TestReconcileByConnectionId:
         existing = self._make_three_alive_panes()
         layout = self._make_layout(["alpha", "new", "beta", "gamma"])
         doc = self._make_doc_with_conns(
-            ["alpha", "beta", "gamma", "new"], remote_conn,
+            ["alpha", "beta", "gamma", "new"],
+            remote_conn,
         )
         backend, warnings = self._reconcile(existing, layout, doc, tmp_path)
 
@@ -1163,7 +1179,9 @@ class TestReconcileByConnectionId:
         assert backend.kill_pane.call_count == 0
 
     def test_delete_from_middle_kills_only_the_removed(
-        self, remote_conn: ClaudeRemoteConnection, tmp_path: Path,
+        self,
+        remote_conn: ClaudeRemoteConnection,
+        tmp_path: Path,
     ) -> None:
         """Layout [alpha, gamma] vs running [alpha, beta, gamma]: only beta
         is killed; alpha and gamma are left alone (no respawn, no shift)."""
@@ -1180,7 +1198,9 @@ class TestReconcileByConnectionId:
         assert backend.respawn_pane.call_count == 0
 
     def test_reorder_uses_swap_pane_not_respawn(
-        self, remote_conn: ClaudeRemoteConnection, tmp_path: Path,
+        self,
+        remote_conn: ClaudeRemoteConnection,
+        tmp_path: Path,
     ) -> None:
         """Layout [gamma, alpha, beta] vs running [alpha, beta, gamma]: no
         kills, no splits, no respawns — just swap-panes to fix order."""
@@ -1196,7 +1216,9 @@ class TestReconcileByConnectionId:
         assert backend.swap_panes.call_count >= 1, warnings
 
     def test_dead_pane_with_matching_layout_conn_is_respawned(
-        self, remote_conn: ClaudeRemoteConnection, tmp_path: Path,
+        self,
+        remote_conn: ClaudeRemoteConnection,
+        tmp_path: Path,
     ) -> None:
         """Dead pane whose connection_id is still in the layout: respawn
         it with that connection's launcher (in place — no split, no kill)."""
@@ -1233,6 +1255,7 @@ class TestLaunchGroupOrphanSourceMove:
         dead: bool = False,
     ) -> Any:
         from cpsm.platform.base import Pane as PlatformPane
+
         sc = f"bash /tmp/cpsm-launcher-{conn_id}-AbCdEf.sh"
         return PlatformPane(
             id=pane_id,
@@ -1248,20 +1271,33 @@ class TestLaunchGroupOrphanSourceMove:
         )
 
     def test_single_launch_pane_is_joined_into_group_session(
-        self, local_conn: ClaudeLocalConnection, tmp_path: Path,
+        self,
+        local_conn: ClaudeLocalConnection,
+        tmp_path: Path,
     ) -> None:
         """A pane in ``cpsm-dotfiles`` (single launch) gets ``join-pane``'d
         into ``cpsm-group-grp-x-mon-0`` rather than duplicated."""
-        from unittest.mock import MagicMock
-        from cpsm.platform.base import Pane as PlatformPane
         from cpsm.data.schema import (
-            CpsmDocument, GeometryPct, Group, Monitor as _Monitor,
-            Pane as _Pane, ScreenLayout, SshKey, Viewport,
+            CpsmDocument,
+            GeometryPct,
+            Group,
+            ScreenLayout,
+            SshKey,
+            Viewport,
+        )
+        from cpsm.data.schema import (
+            Monitor as _Monitor,
+        )
+        from cpsm.data.schema import (
+            Pane as _Pane,
         )
 
         key = SshKey(
-            id="key-test", name="Test", type="ed25519",
-            private_path="/k", public_path="/k.pub",
+            id="key-test",
+            name="Test",
+            type="ed25519",
+            private_path="/k",
+            public_path="/k.pub",
         )
         vp = Viewport(
             id="vp-1",
@@ -1269,11 +1305,13 @@ class TestLaunchGroupOrphanSourceMove:
             panes=[_Pane(connection_id="dotfiles")],
         )
         layout = ScreenLayout(
-            id="ly-1", name="L",
+            id="ly-1",
+            name="L",
             monitors=[_Monitor(viewports=[vp])],
         )
         grp = Group(
-            id="grp-x", name="X",
+            id="grp-x",
+            name="X",
             members=["dotfiles"],
             default_layout_id="ly-1",
         )
@@ -1287,9 +1325,12 @@ class TestLaunchGroupOrphanSourceMove:
         # Backend state: a live single-launch session exists for dotfiles.
         # No cpsm-group-grp-x-mon-* sessions yet.
         from types import SimpleNamespace
+
         single_pane = self._platform_pane("%1", "cpsm-dotfiles", "dotfiles")
         joined_pane = self._platform_pane(
-            "%1", "cpsm-group-grp-x-mon-0", "dotfiles",
+            "%1",
+            "cpsm-group-grp-x-mon-0",
+            "dotfiles",
         )
         # State that mutates as the launch progresses. ``moved`` flips after
         # the join-pane call so subsequent list_panes queries reflect the
@@ -1317,13 +1358,12 @@ class TestLaunchGroupOrphanSourceMove:
             state["moved"] = True
 
         backend = _mock_backend()
-        backend.list_sessions.return_value = [
-            SimpleNamespace(name="cpsm-dotfiles", attached=True)
-        ]
+        backend.list_sessions.return_value = [SimpleNamespace(name="cpsm-dotfiles", attached=True)]
         backend.list_panes.side_effect = _list_panes
         backend.join_pane.side_effect = _join_pane
         backend.new_session.return_value = SimpleNamespace(
-            name="cpsm-group-grp-x-mon-0", id="$1",
+            name="cpsm-group-grp-x-mon-0",
+            id="$1",
         )
 
         svc = _make_service(doc, backend=backend, tmp_dir=tmp_path)
@@ -1365,8 +1405,10 @@ class TestCleanupDeadPanes:
         session: str,
         state_value: str,
     ) -> Any:
+        from datetime import UTC, datetime
+
         from cpsm.workers.status_poller import PaneState, PaneStatus
-        from datetime import datetime, UTC
+
         return PaneStatus(
             pane_id=pane_id,
             session=session,
@@ -1383,14 +1425,13 @@ class TestCleanupDeadPanes:
 
     def test_reaps_dead_pane_in_cpsm_session(self) -> None:
         from cpsm.data.schema import CpsmDocument
+
         doc = CpsmDocument()
         backend = _mock_backend()
         svc = _make_service(doc, backend=backend)
 
         snap = [
-            self._pane_status(
-                pane_id="%5", session="cpsm-cc-multi", state_value="error"
-            ),
+            self._pane_status(pane_id="%5", session="cpsm-cc-multi", state_value="error"),
         ]
         killed = svc.cleanup_dead_panes(snap)
 
@@ -1401,6 +1442,7 @@ class TestCleanupDeadPanes:
     def test_reaps_clean_exit_pane(self) -> None:
         """DISCONNECTED_CLEAN (exit 0) is also reaped, not just ERROR."""
         from cpsm.data.schema import CpsmDocument
+
         doc = CpsmDocument()
         backend = _mock_backend()
         svc = _make_service(doc, backend=backend)
@@ -1419,20 +1461,15 @@ class TestCleanupDeadPanes:
 
     def test_does_not_touch_live_panes(self) -> None:
         from cpsm.data.schema import CpsmDocument
+
         doc = CpsmDocument()
         backend = _mock_backend()
         svc = _make_service(doc, backend=backend)
 
         snap = [
-            self._pane_status(
-                pane_id="%1", session="cpsm-cc-multi", state_value="connected"
-            ),
-            self._pane_status(
-                pane_id="%2", session="cpsm-group-foo-mon-0", state_value="stale"
-            ),
-            self._pane_status(
-                pane_id="%3", session="cpsm-empty", state_value="empty_slot"
-            ),
+            self._pane_status(pane_id="%1", session="cpsm-cc-multi", state_value="connected"),
+            self._pane_status(pane_id="%2", session="cpsm-group-foo-mon-0", state_value="stale"),
+            self._pane_status(pane_id="%3", session="cpsm-empty", state_value="empty_slot"),
         ]
         killed = svc.cleanup_dead_panes(snap)
 
@@ -1443,14 +1480,13 @@ class TestCleanupDeadPanes:
         """User's own tmux sessions must not be reaped even if they have
         dead panes — only cpsm-* are managed by us."""
         from cpsm.data.schema import CpsmDocument
+
         doc = CpsmDocument()
         backend = _mock_backend()
         svc = _make_service(doc, backend=backend)
 
         snap = [
-            self._pane_status(
-                pane_id="%9", session="user-work", state_value="error"
-            ),
+            self._pane_status(pane_id="%9", session="user-work", state_value="error"),
         ]
         killed = svc.cleanup_dead_panes(snap)
 
@@ -1460,18 +1496,15 @@ class TestCleanupDeadPanes:
     def test_kill_pane_failure_is_swallowed(self) -> None:
         """A backend failure on one pane must not stop reaping the rest."""
         from cpsm.data.schema import CpsmDocument
+
         doc = CpsmDocument()
         backend = _mock_backend()
         backend.kill_pane.side_effect = [Exception("boom"), None]
         svc = _make_service(doc, backend=backend)
 
         snap = [
-            self._pane_status(
-                pane_id="%1", session="cpsm-a", state_value="error"
-            ),
-            self._pane_status(
-                pane_id="%2", session="cpsm-b", state_value="error"
-            ),
+            self._pane_status(pane_id="%1", session="cpsm-a", state_value="error"),
+            self._pane_status(pane_id="%2", session="cpsm-b", state_value="error"),
         ]
         killed = svc.cleanup_dead_panes(snap)
 
@@ -1481,6 +1514,7 @@ class TestCleanupDeadPanes:
 
     def test_empty_snapshot_is_a_noop(self) -> None:
         from cpsm.data.schema import CpsmDocument
+
         doc = CpsmDocument()
         backend = _mock_backend()
         svc = _make_service(doc, backend=backend)
@@ -1498,36 +1532,37 @@ class TestExtractCpsmConnId:
 
     def test_simple_alphanum_suffix(self) -> None:
         from cpsm.services.session_service import _extract_cpsm_conn_id
-        assert _extract_cpsm_conn_id(
-            "bash /tmp/cpsm-launcher-radar-dash-AbCdEfGh.sh"
-        ) == "radar-dash"
+
+        assert (
+            _extract_cpsm_conn_id("bash /tmp/cpsm-launcher-radar-dash-AbCdEfGh.sh") == "radar-dash"
+        )
 
     def test_suffix_with_underscore(self) -> None:
         """Regression: mkstemp draws from ``ascii_letters + digits + '_'``,
         so suffixes like ``mb_97z2x`` are legitimate. Earlier the regex
         was ``[A-Za-z0-9]`` (no underscore) and silently failed to match."""
         from cpsm.services.session_service import _extract_cpsm_conn_id
-        assert _extract_cpsm_conn_id(
-            "bash /tmp/cpsm-launcher-radar-dash-mb_97z2x.sh"
-        ) == "radar-dash"
+
+        assert (
+            _extract_cpsm_conn_id("bash /tmp/cpsm-launcher-radar-dash-mb_97z2x.sh") == "radar-dash"
+        )
 
     def test_suffix_all_underscores_alphanumeric(self) -> None:
         from cpsm.services.session_service import _extract_cpsm_conn_id
+
         # 8-char suffix with mix of underscore + digits + letters
-        assert _extract_cpsm_conn_id(
-            "bash /tmp/cpsm-launcher-c1-_a1b2c3_.sh"
-        ) == "c1"
+        assert _extract_cpsm_conn_id("bash /tmp/cpsm-launcher-c1-_a1b2c3_.sh") == "c1"
 
     def test_placeholder_id_returns_none(self) -> None:
         from cpsm.services.session_service import _extract_cpsm_conn_id
+
         # Placeholder launchers (empty-slot panes) are tagged "placeholder-<vp>"
         # and explicitly rejected by the helper.
-        assert _extract_cpsm_conn_id(
-            "bash /tmp/cpsm-launcher-placeholder-vp1-AbCdEfGh.sh"
-        ) is None
+        assert _extract_cpsm_conn_id("bash /tmp/cpsm-launcher-placeholder-vp1-AbCdEfGh.sh") is None
 
     def test_non_launcher_path_returns_none(self) -> None:
         from cpsm.services.session_service import _extract_cpsm_conn_id
+
         assert _extract_cpsm_conn_id("ssh user@host") is None
         assert _extract_cpsm_conn_id("") is None
         assert _extract_cpsm_conn_id("/bin/bash") is None

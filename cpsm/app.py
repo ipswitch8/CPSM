@@ -48,6 +48,7 @@ def _make_services() -> SimpleNamespace:
     status_poller = StatusPoller(backend, interval_ms=3000)
     from cpsm.services.correlation_service import CorrelationService
     from cpsm.services.discovery_service import DiscoveryService
+
     discovery = DiscoveryService()
     correlation = CorrelationService()
     return SimpleNamespace(
@@ -202,6 +203,7 @@ def run_gui(argv: list[str] | None = None, *, config_path: Path | None = None) -
         visible.
     """
     import os as _os
+
     log_level = (_os.environ.get("CPSM_LOG_LEVEL") or "").strip().upper()
     if log_level:
         logging.basicConfig(

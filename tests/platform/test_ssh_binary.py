@@ -252,10 +252,7 @@ def test_build_argv_cycle(
         if (
             flavor == "openssh"
             and identity is not None
-            and not any(
-                opt.split("=")[0].strip().lower() == "identitiesonly"
-                for opt in options
-            )
+            and not any(opt.split("=")[0].strip().lower() == "identitiesonly" for opt in options)
         ):
             expected_o += 1
         assert argv.count("-o") == expected_o
@@ -324,8 +321,7 @@ def test_openssh_caller_identities_only_yes_not_duplicated() -> None:
 
 @pytest.mark.parametrize(
     "spelling",
-    ["identitiesonly=no", "IDENTITIESONLY=no", "IdentitiesOnly = no",
-     "IdentitiesOnly no"],
+    ["identitiesonly=no", "IDENTITIESONLY=no", "IdentitiesOnly = no", "IdentitiesOnly no"],
 )
 def test_openssh_caller_option_detected_case_and_space_insensitively(
     spelling: str,

@@ -307,9 +307,7 @@ def test_hotplug_remove_keeps_the_entry_as_a_ghost(qtbot) -> None:
 
     assert len(w._layout_data.monitors) == 2
     assert w._layout_data.monitors[1].identifier == MON_1.identifier
-    assert [p.connection_id for p in w._layout_data.monitors[1].viewports[0].panes] == [
-        "db-01"
-    ]
+    assert [p.connection_id for p in w._layout_data.monitors[1].viewports[0].panes] == ["db-01"]
     assert len(w._monitors) == 1
     assert len(w._ghost_registry) == 1
 
@@ -376,7 +374,7 @@ def test_redetect_survives_a_failing_monitor_service(qtbot) -> None:
     Screens tab."""
 
     class _Broken(_FakeMonitorService):
-        def snapshot(self):  # noqa: ANN201
+        def snapshot(self):
             raise RuntimeError("X server went away")
 
     svc = _Broken([MON_0, MON_1])
@@ -580,9 +578,7 @@ def test_ghost_survives_the_combined_journey(qtbot) -> None:
     w.redetect_screens()
     assert len(w._layout_data.monitors) == 3, "no duplicate entry for the ghost"
     assert w._layout_data.monitors[1].identifier == MON_1.identifier
-    assert [p.connection_id for p in w._layout_data.monitors[1].viewports[0].panes] == [
-        "db-01"
-    ]
+    assert [p.connection_id for p in w._layout_data.monitors[1].viewports[0].panes] == ["db-01"]
 
 
 # ---------------------------------------------------------------------------
@@ -656,9 +652,7 @@ def test_collapsed_layout_is_repaired_on_render(qtbot) -> None:
 
     assert [m.identifier for m in w._layout_data.monitors] == [None, None]
     _assert_each_display_drawn_once(w, 2)
-    assert [p.connection_id for p in w._layout_data.monitors[0].viewports[0].panes] == [
-        "web-01"
-    ]
+    assert [p.connection_id for p in w._layout_data.monitors[0].viewports[0].panes] == ["web-01"]
 
 
 def test_collapsed_layout_repair_is_persisted(qtbot) -> None:

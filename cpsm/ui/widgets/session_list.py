@@ -76,6 +76,7 @@ class _SidebarTreeWidget(QTreeWidget):
         drag.setMimeData(mime)
         drag.exec(Qt.DropAction.CopyAction)
 
+
 # ---------------------------------------------------------------------------
 # Profile-glyph mapping (§3.1)
 # ---------------------------------------------------------------------------
@@ -161,7 +162,7 @@ class SessionListWidget(QWidget):
         for btn in self._search.findChildren(QToolButton):
             if not btn.objectName():
                 btn.setObjectName("sidebar_search_clear")
-        self._search.textChanged.connect(self._render)  # type: ignore[arg-type]
+        self._search.textChanged.connect(self._render)
 
         self._alpha_only = QCheckBox("A→Z", self)
         self._alpha_only.setObjectName("sidebar_sort_alpha")
@@ -170,7 +171,7 @@ class SessionListWidget(QWidget):
             "Sort connections purely by name.\n"
             "When unchecked (default), sort by group, then by name."
         )
-        self._alpha_only.stateChanged.connect(self._render)  # type: ignore[arg-type]
+        self._alpha_only.stateChanged.connect(self._render)
 
         toolbar.addWidget(self._search, 1)
         toolbar.addWidget(self._alpha_only)
@@ -208,9 +209,7 @@ class SessionListWidget(QWidget):
         # any existing Connection. Matched sessions render as italic
         # sub-rows under their parent Connection — see _render() — so the
         # relationship is structural rather than hinted-at.
-        self._cat_discovered = self._make_category(
-            "Discovered (unmatched)", "cat_discovered"
-        )
+        self._cat_discovered = self._make_category("Discovered (unmatched)", "cat_discovered")
 
         tree.addTopLevelItem(self._cat_connections)
         tree.addTopLevelItem(self._cat_groups)
@@ -251,9 +250,7 @@ class SessionListWidget(QWidget):
         child = QTreeWidgetItem([text])
         child.setData(0, Qt.ItemDataRole.UserRole, item_id)
         child.setFlags(
-            Qt.ItemFlag.ItemIsEnabled
-            | Qt.ItemFlag.ItemIsSelectable
-            | Qt.ItemFlag.ItemIsDragEnabled
+            Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsDragEnabled
         )
         return child
 
@@ -322,9 +319,7 @@ class SessionListWidget(QWidget):
             # Pre-document path: only the unmatched section is renderable.
             # Matched sessions stay buffered in self._discovered until a
             # document arrives via load_document().
-            self._render_unmatched(unmatched + [
-                s for ss in matched_by_conn.values() for s in ss
-            ])
+            self._render_unmatched(unmatched + [s for ss in matched_by_conn.values() for s in ss])
             self._tree.update()
             self.tree_rebuilt.emit()
             return
@@ -369,9 +364,7 @@ class SessionListWidget(QWidget):
                 child.setExpanded(True)
 
         if alpha_only:
-            sorted_conns = sorted(
-                matching_conns, key=lambda c: self._name_key(c.name or c.id)
-            )
+            sorted_conns = sorted(matching_conns, key=lambda c: self._name_key(c.name or c.id))
             for conn in sorted_conns:
                 _add_conn(conn)
         else:
@@ -485,7 +478,7 @@ class SessionListWidget(QWidget):
             return f"↳ outside · {kind_label} {who}  [PID {s.pid}]"
         return f"↳ outside  [PID {s.pid}]"
 
-    def _make_conn_child(self, conn: Any) -> QTreeWidgetItem:  # type: ignore[name-defined]
+    def _make_conn_child(self, conn: Any) -> QTreeWidgetItem:
         glyph = _PROFILE_GLYPHS.get(conn.launch_profile, "?")
         display = conn.name or conn.id
         return self._make_child(f"{glyph} {display}", conn.id)
@@ -577,5 +570,5 @@ def _short_path(path: str) -> str:
     if path == home:
         return "~"
     if path.startswith(home + os.sep):
-        return "~" + path[len(home):]
+        return "~" + path[len(home) :]
     return path

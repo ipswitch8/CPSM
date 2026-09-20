@@ -355,12 +355,17 @@ class StatusPoller(QThread):
             if self._stop.loadRelaxed():
                 return
 
+            def _attached_lookup(name: str, _map: dict[str, bool] = attached_map) -> bool:
+                # _map is bound as a default so it freezes to THIS poll
+                # iteration; attached_map is rebound on every pass.
+                return _map.get(name, True)
+
             changed, all_statuses, current_ids = _process_poll(
                 panes,
                 self._state,
                 interval_s=interval_s,
                 capture_pane_fn=lambda pid: self._backend.capture_pane(pid, lines=200),
-                attached_lookup=lambda s: attached_map.get(s, True),
+                attached_lookup=_attached_lookup,
             )
 
             for status in changed:

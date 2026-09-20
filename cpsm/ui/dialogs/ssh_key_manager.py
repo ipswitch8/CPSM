@@ -251,17 +251,20 @@ class SshKeyManagerDialog(QDialog):
             if resolved in existing_paths:
                 continue
             key_type = type_map.get(p.name, p.name.removeprefix("id_"))
-            out.append({
-                "name": p.name,
-                "type": key_type,
-                "private_path": str(p),
-                "public_path": str(pub),
-            })
+            out.append(
+                {
+                    "name": p.name,
+                    "type": key_type,
+                    "private_path": str(p),
+                    "public_path": str(pub),
+                }
+            )
         return out
 
     def _on_register_system_key(self, info: dict[str, str]) -> None:
         """Register a discovered system key as a doc-tracked SshKey."""
         from cpsm.data.schema import SshKey as _SshKey
+
         # Build an id slug from the filename (id_ed25519 → id-ed25519).
         slug = info["name"].replace("_", "-").lower()
         # Avoid collision with existing ids
@@ -351,33 +354,27 @@ class SshKeyManagerDialog(QDialog):
         about, and prompting for every deletion trains people to dismiss it.
         """
         affected = [
-            c
-            for c in self._doc.connections
-            if getattr(c, "identity_file_ref", None) == key.id
+            c for c in self._doc.connections if getattr(c, "identity_file_ref", None) == key.id
         ]
         if affected:
-            shown = sorted(
-                str(getattr(c, "name", None) or getattr(c, "id", "?"))
-                for c in affected
-            )
-            listing = "\n".join("  \u2022 %s" % n for n in shown[:10])
+            shown = sorted(str(getattr(c, "name", None) or getattr(c, "id", "?")) for c in affected)
+            listing = "\n".join(f"  \u2022 {n}" for n in shown[:10])
             if len(shown) > 10:
-                listing += "\n  \u2026 and %d more" % (len(shown) - 10)
+                listing += f"\n  \u2026 and {len(shown) - 10} more"
             box = QMessageBox(self)
             # Stable name so UI automation can find this without matching text.
             box.setObjectName("msg_delete_key_in_use")
             box.setIcon(QMessageBox.Icon.Warning)
             box.setWindowTitle("Key is in use")
             box.setText(
-                "%d connection(s) use the key %r.\n\n"
+                f"{len(affected)} connection(s) use the key "
+                f"{key.name or key.id!r}.\n\n"
                 "Deleting it leaves them pointing at a key that no longer "
                 "exists. They will refuse to launch until you point them at "
-                "another key." % (len(affected), key.name or key.id)
+                "another key."
             )
             box.setInformativeText("Affected connections:\n" + listing)
-            box.setStandardButtons(
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
+            box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             box.setDefaultButton(QMessageBox.StandardButton.No)
             if box.exec() != QMessageBox.StandardButton.Yes:
                 return

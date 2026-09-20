@@ -167,7 +167,6 @@ def _safe_render(template: str, context: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 
-
 def _ssh_option_values(raw: str) -> list[str]:
     """Extract the ``-o`` VALUES from a raw ssh flag string.
 
@@ -384,9 +383,7 @@ class TemplateService:
         # The keyword comparison is SshBinary's has_ssh_option -- the same rule
         # the non-template code paths use, so there is one implementation
         # rather than two that can disagree.
-        user_set_identities_only = has_ssh_option(
-            _ssh_option_values(ssh_options), "IdentitiesOnly"
-        )
+        user_set_identities_only = has_ssh_option(_ssh_option_values(ssh_options), "IdentitiesOnly")
 
         # Resolve identity_file: connection schema has identity_file_ref (a
         # SshKey id slug); the launcher needs the on-disk private_path.  If
@@ -452,9 +449,7 @@ class TemplateService:
                 or _get("id")
             )
             rc_flag = f"--remote-control {shlex.quote(str(rc_name))}"
-            claude_options = (
-                f"{rc_flag} {claude_options}".strip() if claude_options else rc_flag
-            )
+            claude_options = f"{rc_flag} {claude_options}".strip() if claude_options else rc_flag
 
         ctx: dict[str, Any] = {
             # Connection identity
@@ -477,9 +472,7 @@ class TemplateService:
             # Non-empty when the launcher should pin the identity: empty when
             # there is no identity to pin, or when the user already expressed
             # an IdentitiesOnly preference of their own.
-            "pin_identity": (
-                "1" if (identity_file and not user_set_identities_only) else ""
-            ),
+            "pin_identity": ("1" if (identity_file and not user_set_identities_only) else ""),
             # Env dict flattened as individual env.KEY lookups (handled in _resolve_token)
             # Tags / notes (rarely needed in templates but available)
             "notes": _get("notes"),

@@ -188,14 +188,14 @@ class TestDropRendersPinnedLauncher:
             layout=layout_svc,
             session=MagicMock(),
             backend=backend,
-            templates=TemplateService(),   # real, not a mock
+            templates=TemplateService(),  # real, not a mock
         )
         ctrl.set_document(doc)
         vp = _make_viewport(panes=[_make_pane(None)])
         ctrl.set_screen_layout(_make_layout(viewports=[vp]))
         # Panes carry no id of their own; the id is the tmux pane target, so
         # stub the lookups the same way the gesture tests above do.
-        ctrl._pane_is_empty = lambda pid, v: True   # type: ignore[method-assign]
+        ctrl._pane_is_empty = lambda pid, v: True  # type: ignore[method-assign]
         ctrl._find_viewport_for_pane = lambda pid: vp  # type: ignore[method-assign]
         ctrl.on_drop_connection("pinned", "pane-a", "center", 0)
         return backend, doc

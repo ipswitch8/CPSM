@@ -13,11 +13,11 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt  # noqa: E402
-from PySide6.QtWidgets import QLabel  # noqa: E402
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel
 
-from cpsm import __version__, version_string  # noqa: E402
-from cpsm.ui.dialogs.about import AboutDialog  # noqa: E402
+from cpsm import __version__, version_string
+from cpsm.ui.dialogs.about import AboutDialog
 
 
 class TestAboutVersionLabel:

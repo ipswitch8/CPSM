@@ -24,6 +24,7 @@ Layout
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import re
@@ -127,9 +128,7 @@ _REMOTE_PROFILES = frozenset({"ssh-shell", "claude-remote"})
 # Foreground commands that count as "the connection is up" for a remote
 # profile. Anything else on a remote profile (bash, zsh, sh, sleep, read…)
 # means the SSH process is no longer running.
-_REMOTE_LIVE_COMMANDS = frozenset(
-    {"ssh", "sshpass", "mosh", "mosh-client", "scp", "sftp", "plink"}
-)
+_REMOTE_LIVE_COMMANDS = frozenset({"ssh", "sshpass", "mosh", "mosh-client", "scp", "sftp", "plink"})
 
 # Sidebar status dot per external status value. Disconnected is treated as
 # the "show no problems" baseline — but we still render a blue dot so the
@@ -304,6 +303,7 @@ class MainWindow(QMainWindow):
             poller = getattr(self._services, "status_poller", None)
             if poller is not None and hasattr(poller, "poll_complete"):
                 import contextlib
+
                 with contextlib.suppress(Exception):
                     poller.poll_complete.connect(self._on_status_poll_complete)
 
@@ -900,9 +900,7 @@ class MainWindow(QMainWindow):
         widget.drop_connection_on_viewport_requested.connect(
             self._on_screen_map_drop_connection_on_viewport
         )
-        widget.drop_pane_on_viewport_requested.connect(
-            self._on_screen_map_drop_pane_on_viewport
-        )
+        widget.drop_pane_on_viewport_requested.connect(self._on_screen_map_drop_pane_on_viewport)
         widget.pane_clicked.connect(self._on_screen_map_pane_clicked)
         widget.remove_disconnected_monitor_requested.connect(
             self._on_screen_map_remove_disconnected_monitor
@@ -961,10 +959,8 @@ class MainWindow(QMainWindow):
         # red dead panes under remain-on-exit.
         session_svc = getattr(self._services, "session", None) if self._services else None
         if session_svc is not None and hasattr(session_svc, "cleanup_dead_panes"):
-            try:
+            with contextlib.suppress(Exception):
                 session_svc.cleanup_dead_panes(statuses)
-            except Exception:
-                pass
         # Re-render the canvas: re-running set_layout with the current data
         # walks the panes and re-evaluates _status_lookup for each.
         if hasattr(self, "_screen_map_widget") and self._screen_map_widget._layout_data:
@@ -1116,6 +1112,7 @@ class MainWindow(QMainWindow):
         # will join-pane it into the group session and the positional path
         # will succeed thereafter.
         from cpsm.services.session_service import _extract_cpsm_conn_id
+
         for st in snap:
             sc = getattr(st, "start_command", "") or ""
             if _extract_cpsm_conn_id(sc) == connection_id:
@@ -1742,18 +1739,14 @@ class MainWindow(QMainWindow):
 
         # Register with group: set as default_layout_id if it's the first layout,
         # or just append (Group only tracks default_layout_id, not a list).
-        grp_idx = next(
-            (i for i, g in enumerate(self._document.groups) if g.id == grp.id), None
-        )
+        grp_idx = next((i for i, g in enumerate(self._document.groups) if g.id == grp.id), None)
         if grp_idx is not None:
             updated_grp = self._document.groups[grp_idx]
             # Always point the group at the newly-created layout — otherwise
             # subsequent renders via default_layout_id would diverge from
             # what's actually on the canvas, and edits applied to the rendered
             # layout would silently disappear on the next refresh.
-            updated_grp = updated_grp.model_copy(
-                update={"default_layout_id": new_layout.id}
-            )
+            updated_grp = updated_grp.model_copy(update={"default_layout_id": new_layout.id})
             self._document.groups[grp_idx] = updated_grp
 
         # Persist
@@ -1910,8 +1903,9 @@ class MainWindow(QMainWindow):
                 act_clear = QAction("Clear Pane", menu)
                 act_clear.setObjectName("action_screens_clear_pane")
                 act_clear.triggered.connect(
-                    lambda _c=False, m=schema_mon, v=vp_obj, pi=pane_idx:
-                    mixin._cmx_update_pane_connection(m, v, pi, None)
+                    lambda _c=False, m=schema_mon, v=vp_obj, pi=pane_idx: (
+                        mixin._cmx_update_pane_connection(m, v, pi, None)
+                    )
                 )
                 menu.addAction(act_clear)
                 menu.addSeparator()
@@ -1951,9 +1945,7 @@ class MainWindow(QMainWindow):
             return
         if not changed:
             count = len(self._query_live_monitors())
-            self.statusBar().showMessage(
-                f"No new displays found ({count} connected).", 3000
-            )
+            self.statusBar().showMessage(f"No new displays found ({count} connected).", 3000)
 
     def _cmx_get_layout(self) -> ScreenLayout:
         """Return the current canvas layout for cmx mixin calls."""
@@ -2274,15 +2266,9 @@ class MainWindow(QMainWindow):
         self._save_document()
         count = len(layout.monitors)
         if grew:
-            message = (
-                f"Detected new display — layout '{layout.name}' now covers "
-                f"{count} monitors."
-            )
+            message = f"Detected new display — layout '{layout.name}' now covers {count} monitors."
         else:
-            message = (
-                f"Repaired monitor identifiers in layout '{layout.name}' "
-                f"({count} monitors)."
-            )
+            message = f"Repaired monitor identifiers in layout '{layout.name}' ({count} monitors)."
         self.statusBar().showMessage(message, 5000)
 
     def _save_document(self) -> None:
@@ -2303,16 +2289,18 @@ class MainWindow(QMainWindow):
             return
         save_doc = self._document
         if self._temp_group_ids or self._temp_layout_ids:
-            save_doc = self._document.model_copy(update={
-                "groups": [
-                    g for g in self._document.groups
-                    if g.id not in self._temp_group_ids
-                ],
-                "screen_layouts": [
-                    ly for ly in self._document.screen_layouts
-                    if ly.id not in self._temp_layout_ids
-                ],
-            })
+            save_doc = self._document.model_copy(
+                update={
+                    "groups": [
+                        g for g in self._document.groups if g.id not in self._temp_group_ids
+                    ],
+                    "screen_layouts": [
+                        ly
+                        for ly in self._document.screen_layouts
+                        if ly.id not in self._temp_layout_ids
+                    ],
+                }
+            )
         try:
             repo.save(save_doc, target)
         except Exception as exc:
@@ -2703,9 +2691,7 @@ class MainWindow(QMainWindow):
         item_id: str = current.data(0, Qt.ItemDataRole.UserRole) or ""
 
         # Sub-row under a Connection (D5): treat as a click on the parent.
-        if item_id.startswith("discovered:") and not category_id.startswith(
-            "category_"
-        ):
+        if item_id.startswith("discovered:") and not category_id.startswith("category_"):
             parent_conn_id = parent.data(0, Qt.ItemDataRole.UserRole) or ""
             conn = self._find_connection_by_id(parent_conn_id)
             if conn is not None:
@@ -2787,6 +2773,7 @@ class MainWindow(QMainWindow):
         # the canvas has something to render.
         if not new_layout.monitors and grp.members:
             from cpsm.data.schema import GeometryPct, Monitor, Pane, Viewport
+
             panes_fb = [Pane(connection_id=mid) for mid in grp.members]
             vp_fb = Viewport(
                 id=f"{grp.id}-vp-0",
@@ -2816,6 +2803,7 @@ class MainWindow(QMainWindow):
         chosen_id = new_layout.id
         if chosen_id in existing_ids:
             import uuid as _uuid
+
             chosen_id = f"{new_layout.id}-{_uuid.uuid4().hex[:6]}"
         if chosen_id != new_layout.id:
             new_layout = new_layout.model_copy(update={"id": chosen_id})
@@ -2826,7 +2814,8 @@ class MainWindow(QMainWindow):
         self._save_document()
         _dd_log.info(
             "auto-created layout %s for group %s",
-            new_layout.id, group_id,
+            new_layout.id,
+            group_id,
         )
 
     def _active_group_id(self) -> str | None:
@@ -2841,9 +2830,11 @@ class MainWindow(QMainWindow):
         """Return connection_ids currently placed as panes in the canvas
         layout (the layout the ScreenMapWidget is rendering)."""
         out: set[str] = set()
-        layout = getattr(self._screen_map_widget, "_layout_data", None) if hasattr(
-            self, "_screen_map_widget"
-        ) else None
+        layout = (
+            getattr(self._screen_map_widget, "_layout_data", None)
+            if hasattr(self, "_screen_map_widget")
+            else None
+        )
         if layout is None:
             return out
         for sm in layout.monitors:
@@ -2873,6 +2864,7 @@ class MainWindow(QMainWindow):
         placed_ids = self._placed_connection_ids()
 
         from PySide6.QtGui import QBrush, QColor, QFont
+
         member_color = QBrush(QColor("#60a5fa"))
         placed_color = QBrush(QColor("#94a3b8"))
         default_color = QBrush(QColor())
@@ -2946,9 +2938,7 @@ class MainWindow(QMainWindow):
             if session is None:
                 return
             if session.suggested_connection_id:
-                self._adopt_discovered_session(
-                    session, session.suggested_connection_id
-                )
+                self._adopt_discovered_session(session, session.suggested_connection_id)
             else:
                 self._open_connection_editor_from_discovered(session)
             return
@@ -2996,9 +2986,7 @@ class MainWindow(QMainWindow):
         try:
             sessions = discovery.find_outside_sessions(self._document)
         except Exception:
-            logging.getLogger(__name__).exception(
-                "DiscoveryService.find_outside_sessions failed"
-            )
+            logging.getLogger(__name__).exception("DiscoveryService.find_outside_sessions failed")
             sessions = []
         if self._ignored_discovered_pids:
             sessions = [s for s in sessions if s.pid not in self._ignored_discovered_pids]
@@ -3023,9 +3011,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_refresh_sidebar_status_dots"):
             self._refresh_sidebar_status_dots()
 
-    def _start_correlation_worker(
-        self, correlation: Any, sessions: list[Any]
-    ) -> None:
+    def _start_correlation_worker(self, correlation: Any, sessions: list[Any]) -> None:
         """Spawn a CorrelationWorker for *sessions* and wire its result
         back to :meth:`_on_correlation_done`."""
         if self._document is None:
@@ -3039,6 +3025,7 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
         from cpsm.workers.correlation_worker import CorrelationWorker
+
         worker = CorrelationWorker(correlation, self._document, sessions, parent=self)
         worker.finished_with_result.connect(self._on_correlation_done)
         self._correlation_worker = worker
@@ -3060,6 +3047,7 @@ class MainWindow(QMainWindow):
         if not by_pid and not cwds_by_pid:
             return
         from dataclasses import replace
+
         updated: list[Any] = []
         any_changed = False
         for s in cached:
@@ -3078,9 +3066,7 @@ class MainWindow(QMainWindow):
         if any_changed:
             self._apply_discovered_sessions(updated)
 
-    def _adopt_discovered_session(
-        self, session: Any, target_connection_id: str
-    ) -> None:
+    def _adopt_discovered_session(self, session: Any, target_connection_id: str) -> None:
         """Walk the user through closing *session*'s pid then launch the
         target connection with ``--continue`` appended (Claude profiles
         only).
@@ -3130,20 +3116,19 @@ class MainWindow(QMainWindow):
             base_opts = getattr(conn, "claude_options", "") or ""
             new_opts = append_continue_flag(base_opts)
             launch_conn = conn.model_copy(update={"claude_options": new_opts})
-            launch_doc = self._document.model_copy(update={
-                "connections": [
-                    launch_conn if c.id == conn.id else c
-                    for c in self._document.connections
-                ]
-            })
+            launch_doc = self._document.model_copy(
+                update={
+                    "connections": [
+                        launch_conn if c.id == conn.id else c for c in self._document.connections
+                    ]
+                }
+            )
         else:
             launch_doc = self._document
         try:
             self._services.session.launch(launch_doc, conn.id)
         except Exception:
-            logging.getLogger(__name__).exception(
-                "Adoption launch failed for %s", conn.id
-            )
+            logging.getLogger(__name__).exception("Adoption launch failed for %s", conn.id)
 
     def _ignore_discovered_pid(self, pid: int) -> None:
         """User chose 'Ignore' on a Discovered row; hide it for the rest of
@@ -3160,6 +3145,9 @@ class MainWindow(QMainWindow):
             ClaudeRemoteConnection,
             SshShellConnection,
         )
+
+        draft: ClaudeLocalConnection | ClaudeRemoteConnection | SshShellConnection
+
         try:
             if session.kind == "claude-local":
                 draft = ClaudeLocalConnection(
@@ -3334,16 +3322,12 @@ class MainWindow(QMainWindow):
 
         act_ignore = QAction("Ignore (this session)", self)
         act_ignore.setObjectName("action_ctx_discovered_ignore")
-        act_ignore.triggered.connect(
-            lambda _c=False, p=pid: self._ignore_discovered_pid(p)
-        )
+        act_ignore.triggered.connect(lambda _c=False, p=pid: self._ignore_discovered_pid(p))
         menu.addAction(act_ignore)
 
         act_refresh = QAction("Refresh discovered list", self)
         act_refresh.setObjectName("action_ctx_discovered_refresh")
-        act_refresh.triggered.connect(
-            lambda _c=False: self._refresh_discovered_sessions()
-        )
+        act_refresh.triggered.connect(lambda _c=False: self._refresh_discovered_sessions())
         menu.addAction(act_refresh)
 
         self._exec_menu(menu, global_pos)
@@ -3443,13 +3427,13 @@ class MainWindow(QMainWindow):
 
         if multi:
             act_launch_temp = QAction(
-                f"Launch {len(targets)} as temporary group", self,
+                f"Launch {len(targets)} as temporary group",
+                self,
             )
             act_launch_temp.setObjectName("action_ctx_launch_temp_group")
             act_launch_temp.setWhatsThis("Launch selected connections as a temporary group")
             act_launch_temp.triggered.connect(
-                lambda _c=False, ids=list(targets):
-                    self._launch_selection_as_temp_group(ids),
+                lambda _c=False, ids=list(targets): self._launch_selection_as_temp_group(ids),
             )
             menu.addAction(act_launch_temp)
 
@@ -3490,27 +3474,31 @@ class MainWindow(QMainWindow):
             if out_grp:
                 label = (
                     f"Add {len(out_grp)} to group '{active_grp.name}'"
-                    if multi else f"Add to group '{active_grp.name}'"
+                    if multi
+                    else f"Add to group '{active_grp.name}'"
                 )
                 act_add = QAction(label, self)
                 act_add.setObjectName("action_ctx_add_to_group")
                 act_add.setWhatsThis(f"Add to {active_grp.name}")
                 act_add.triggered.connect(
-                    lambda _c=False, ids=list(out_grp), gid=active_gid:
-                        self._add_connections_to_group(ids, gid),
+                    lambda _c=False, ids=list(out_grp), gid=active_gid: (
+                        self._add_connections_to_group(ids, gid)
+                    ),
                 )
                 menu.addAction(act_add)
             if in_grp:
                 label = (
                     f"Remove {len(in_grp)} from group '{active_grp.name}'"
-                    if multi else f"Remove from group '{active_grp.name}'"
+                    if multi
+                    else f"Remove from group '{active_grp.name}'"
                 )
                 act_rm = QAction(label, self)
                 act_rm.setObjectName("action_ctx_remove_from_group")
                 act_rm.setWhatsThis(f"Remove from {active_grp.name}")
                 act_rm.triggered.connect(
-                    lambda _c=False, ids=list(in_grp), gid=active_gid:
-                        self._remove_connections_from_group(ids, gid),
+                    lambda _c=False, ids=list(in_grp), gid=active_gid: (
+                        self._remove_connections_from_group(ids, gid)
+                    ),
                 )
                 menu.addAction(act_rm)
 
@@ -3674,9 +3662,7 @@ class MainWindow(QMainWindow):
         # may no longer be the same Python object that's stored in
         # self._document.groups.
         before = len(self._document.groups)
-        self._document.groups[:] = [
-            g for g in self._document.groups if g.id != grp.id
-        ]
+        self._document.groups[:] = [g for g in self._document.groups if g.id != grp.id]
         if len(self._document.groups) == before:
             return  # nothing matched
         self.load_document(self._document)
@@ -3759,7 +3745,9 @@ class MainWindow(QMainWindow):
         return [rc_id] if rc_id else []
 
     def _add_connections_to_group(
-        self, conn_ids: list[str], group_id: str,
+        self,
+        conn_ids: list[str],
+        group_id: str,
     ) -> None:
         """Append each id in *conn_ids* to *group_id*'s members (if not
         already present), persist, and refresh sidebar highlights."""
@@ -3789,7 +3777,9 @@ class MainWindow(QMainWindow):
         )
 
     def _remove_connections_from_group(
-        self, conn_ids: list[str], group_id: str,
+        self,
+        conn_ids: list[str],
+        group_id: str,
     ) -> None:
         """Remove each id in *conn_ids* from *group_id*'s members, persist,
         and refresh sidebar highlights."""
@@ -3833,6 +3823,7 @@ class MainWindow(QMainWindow):
         layout = self._build_grid_layout_for(conn_ids, live_monitors, tl_id)
 
         from cpsm.data.schema import Group as _Group
+
         grp = _Group(
             id=tg_id,
             name=f"Temp ({len(conn_ids)} connections)",
@@ -3863,11 +3854,17 @@ class MainWindow(QMainWindow):
 
         from cpsm.data.schema import (
             GeometryPct,
-            Monitor as _Monitor,
-            Pane as _Pane,
             ScreenLayout,
-            Split as _Split,
             Viewport,
+        )
+        from cpsm.data.schema import (
+            Monitor as _Monitor,
+        )
+        from cpsm.data.schema import (
+            Pane as _Pane,
+        )
+        from cpsm.data.schema import (
+            Split as _Split,
         )
 
         n = len(conn_ids)
@@ -3893,10 +3890,7 @@ class MainWindow(QMainWindow):
                 row_nodes.append(row_leaves[0])
             else:
                 row_nodes.append(_Split(direction="h", children=row_leaves))
-        if len(row_nodes) == 1:
-            tree = row_nodes[0]
-        else:
-            tree = _Split(direction="v", children=row_nodes)
+        tree = row_nodes[0] if len(row_nodes) == 1 else _Split(direction="v", children=row_nodes)
 
         vp = Viewport(
             id=f"{layout_id}-vp",
@@ -3907,13 +3901,12 @@ class MainWindow(QMainWindow):
         # Resolve the live monitor identifier so the layout pins to the
         # primary display. Falls back to None — the renderer will then use
         # positional matching, which is fine for one-monitor layouts.
-        ident = (
-            getattr(live_monitors[0], "identifier", None)
-            if live_monitors else None
-        )
+        ident = getattr(live_monitors[0], "identifier", None) if live_monitors else None
         monitor = _Monitor(identifier=ident, viewports=[vp])
         return ScreenLayout(
-            id=layout_id, name=f"Grid {rows}×{cols}", monitors=[monitor],
+            id=layout_id,
+            name=f"Grid {rows}×{cols}",
+            monitors=[monitor],
         )
 
     def _pin_temp_group(self, grp: Any) -> None:
@@ -3974,9 +3967,7 @@ class MainWindow(QMainWindow):
             return  # user cancelled
         action = resolution.get(conn.id, "duplicate")
         if action == "skip":
-            self.statusBar().showMessage(
-                f"Skipped {conn.name or conn.id}", 3000
-            )
+            self.statusBar().showMessage(f"Skipped {conn.name or conn.id}", 3000)
             return
         if action == "adopt":
             self._adopt_discovered_session(
@@ -4112,23 +4103,35 @@ class MainWindow(QMainWindow):
             Path("~/.ssh/id_dsa").expanduser(),
         ]
         import subprocess as _subprocess
+
         from cpsm.platform.child_env import child_env as _child_env
+
         for key_path in candidates:
             if not key_path.exists():
                 continue
             argv = [
                 "ssh",
-                "-p", str(port),
-                "-o", "BatchMode=yes",
-                "-o", "IdentitiesOnly=yes",
-                "-o", "ConnectTimeout=5",
-                "-o", "StrictHostKeyChecking=accept-new",
-                "-i", str(key_path),
-                f"{user}@{host}", "true",
+                "-p",
+                str(port),
+                "-o",
+                "BatchMode=yes",
+                "-o",
+                "IdentitiesOnly=yes",
+                "-o",
+                "ConnectTimeout=5",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                "-i",
+                str(key_path),
+                f"{user}@{host}",
+                "true",
             ]
             try:
                 result = _subprocess.run(
-                    argv, capture_output=True, timeout=8, text=True,
+                    argv,
+                    capture_output=True,
+                    timeout=8,
+                    text=True,
                     env=_child_env(),
                 )
             except Exception:
@@ -4136,7 +4139,10 @@ class MainWindow(QMainWindow):
             if result.returncode == 0:
                 _dd_log.info(
                     "system key %s authenticates to %s@%s:%s",
-                    key_path, user, host, port,
+                    key_path,
+                    user,
+                    host,
+                    port,
                 )
                 return key_path
         return None
@@ -4155,17 +4161,21 @@ class MainWindow(QMainWindow):
         for existing in self._document.ssh_keys:
             if Path(existing.private_path).expanduser() == priv_path:
                 return existing.id
-        pub_path = priv_path.with_suffix(priv_path.suffix + ".pub") \
-            if priv_path.suffix \
+        pub_path = (
+            priv_path.with_suffix(priv_path.suffix + ".pub")
+            if priv_path.suffix
             else Path(str(priv_path) + ".pub")
+        )
         if not pub_path.exists():
             _dd_log.warning(
                 "system key %s found but %s missing — not registering",
-                priv_path, pub_path,
+                priv_path,
+                pub_path,
             )
             return None
         # Build a unique slug-safe id from the file basename.
         from cpsm.data.schema import SshKey
+
         base = priv_path.name.lower().replace("_", "-")
         existing_ids = {k.id for k in self._document.ssh_keys}
         candidate = f"system-{base}"
@@ -4185,7 +4195,7 @@ class MainWindow(QMainWindow):
         new_key = SshKey(
             id=new_id,
             name=f"System {priv_path.name}",
-            type=key_type,  # type: ignore[arg-type]
+            type=key_type,
             private_path=priv_str,
             public_path=str(pub_path),
         )
@@ -4193,7 +4203,8 @@ class MainWindow(QMainWindow):
         self._save_document()
         _dd_log.info(
             "registered system SSH key '%s' (%s) in document",
-            new_id, priv_str,
+            new_id,
+            priv_str,
         )
         return new_id
 
@@ -4204,10 +4215,7 @@ class MainWindow(QMainWindow):
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Question)
         box.setWindowTitle("SSH Authentication")
-        box.setText(
-            f"How should CPSM authenticate to "
-            f"<b>{conn.name or conn.id}</b>?"
-        )
+        box.setText(f"How should CPSM authenticate to <b>{conn.name or conn.id}</b>?")
         box.setInformativeText(
             "Choose 'Deploy SSH key' to push your public key to the host "
             "(you'll be asked for the SSH password once). Choose 'Always "
@@ -4257,7 +4265,9 @@ class MainWindow(QMainWindow):
         self._document.connections[idx] = new_conn
         self._save_document()
         _dd_log.info(
-            "auth choice persisted for %s: %s", conn.id, update,
+            "auth choice persisted for %s: %s",
+            conn.id,
+            update,
         )
 
     def _deploy_key_for_connection(self, conn: Any) -> bool:
@@ -4300,6 +4310,7 @@ class MainWindow(QMainWindow):
             chosen_idx = 0
         else:
             from PySide6.QtWidgets import QInputDialog
+
             label, ok = QInputDialog.getItem(
                 self,
                 "Pick SSH Key",
@@ -4353,6 +4364,7 @@ class MainWindow(QMainWindow):
 
         # Open the existing DeployKeyDialog
         from cpsm.ui.dialogs.deploy_key import DeployKeyDialog
+
         key_service = getattr(self._services, "key_service", None)
         if key_service is None:
             QMessageBox.warning(
@@ -4376,6 +4388,7 @@ class MainWindow(QMainWindow):
             )
             return False
         from PySide6.QtWidgets import QDialog
+
         result = dlg.exec()
         if result != QDialog.DialogCode.Accepted:
             return False
@@ -4415,12 +4428,14 @@ class MainWindow(QMainWindow):
             seen_paths.add(priv)
             if not priv.exists():
                 continue  # skip orphaned ssh_keys entries
-            candidates.append({
-                "label": f"{k.name} [{k.id}]",
-                "private_path": priv,
-                "encrypted": self._is_key_encrypted(priv),
-                "registered_id": k.id,
-            })
+            candidates.append(
+                {
+                    "label": f"{k.name} [{k.id}]",
+                    "private_path": priv,
+                    "encrypted": self._is_key_encrypted(priv),
+                    "registered_id": k.id,
+                }
+            )
 
         ssh_dir = Path("~/.ssh").expanduser()
         if ssh_dir.is_dir():
@@ -4438,12 +4453,14 @@ class MainWindow(QMainWindow):
                     continue
                 if "PRIVATE KEY" not in head:
                     continue
-                candidates.append({
-                    "label": f"{entry.name} (~/.ssh)",
-                    "private_path": entry,
-                    "encrypted": self._is_key_encrypted(entry),
-                    "registered_id": None,
-                })
+                candidates.append(
+                    {
+                        "label": f"{entry.name} (~/.ssh)",
+                        "private_path": entry,
+                        "encrypted": self._is_key_encrypted(entry),
+                        "registered_id": None,
+                    }
+                )
 
         # Unencrypted first; then alphabetical by label.
         candidates.sort(key=lambda c: (c["encrypted"], c["label"].lower()))
@@ -4457,13 +4474,17 @@ class MainWindow(QMainWindow):
         is conservatively treated as encrypted.
         """
         import subprocess as _subprocess
+
         from cpsm.platform.child_env import child_env as _child_env
+
         try:
             result = _subprocess.run(
                 # ssh-keygen links libcrypto; sanitise so it does not resolve
                 # ours from the PyInstaller bundle.
                 ["ssh-keygen", "-y", "-P", "", "-f", str(priv_path)],
-                capture_output=True, timeout=5, text=True,
+                capture_output=True,
+                timeout=5,
+                text=True,
                 env=_child_env(),
             )
         except Exception:
@@ -4488,7 +4509,9 @@ class MainWindow(QMainWindow):
         bounded by the outer subprocess timeout.
         """
         import subprocess as _subprocess
+
         from cpsm.platform.child_env import child_env as _child_env
+
         priv_path = Path(getattr(key, "private_path", "")).expanduser()
         if not priv_path.exists():
             return
@@ -4515,18 +4538,29 @@ class MainWindow(QMainWindow):
         # reason.
         argv = [
             "ssh",
-            "-p", str(port),
-            "-o", "BatchMode=yes",
-            "-o", "ConnectTimeout=3",
-            "-o", "StrictHostKeyChecking=accept-new",
-            "-o", "PreferredAuthentications=publickey",
-            "-o", "IdentitiesOnly=yes",
-            "-i", str(priv_path),
-            f"{user}@{host}", "true",
+            "-p",
+            str(port),
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "ConnectTimeout=3",
+            "-o",
+            "StrictHostKeyChecking=accept-new",
+            "-o",
+            "PreferredAuthentications=publickey",
+            "-o",
+            "IdentitiesOnly=yes",
+            "-i",
+            str(priv_path),
+            f"{user}@{host}",
+            "true",
         ]
         try:
             result = _subprocess.run(
-                argv, capture_output=True, timeout=4, text=True,
+                argv,
+                capture_output=True,
+                timeout=4,
+                text=True,
                 env=_child_env(),
             )
         except Exception:
@@ -4588,12 +4622,11 @@ class MainWindow(QMainWindow):
                 # resolution and now. If so, skip the close-the-pid dialog
                 # and still mutate the doc with --continue so Claude
                 # resumes the saved conversation.
-                if disc is not None:
-                    if not self._adopt_pid_via_dialog(disc, conn.name or conn.id):
-                        self.statusBar().showMessage(
-                            f"Group launch cancelled at {conn.name or conn.id}", 3000
-                        )
-                        return
+                if disc is not None and not self._adopt_pid_via_dialog(disc, conn.name or conn.id):
+                    self.statusBar().showMessage(
+                        f"Group launch cancelled at {conn.name or conn.id}", 3000
+                    )
+                    return
                 # Mutate the doc to append --continue for Claude profiles.
                 launch_doc = self._mutate_doc_with_continue(launch_doc, cid)
         skipped = {cid for cid, a in resolution.items() if a == "skip"}
@@ -4606,7 +4639,8 @@ class MainWindow(QMainWindow):
             launch_doc = launch_doc.model_copy(update={"groups": new_groups})
         try:
             session_svc.launch_group(
-                launch_doc, grp.id,
+                launch_doc,
+                grp.id,
                 monitors=self._query_live_monitors(),
             )
             msg = f"Launched group {grp.name}"
@@ -4616,9 +4650,7 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             QMessageBox.warning(self, "Launch Failed", str(exc))
 
-    def _resolve_launch_conflicts(
-        self, connection_ids: list[str]
-    ) -> dict[str, str] | None:
+    def _resolve_launch_conflicts(self, connection_ids: list[str]) -> dict[str, str] | None:
         """Detect outside-CPSM sessions for each id and ask the user how to
         resolve them. Returns a mapping of connection_id → action
         (``"adopt" | "duplicate" | "skip"``).
@@ -4650,7 +4682,7 @@ class MainWindow(QMainWindow):
         dlg = LaunchConflictDialog(conflicts, parent=self)
         if dlg.exec() != dlg.DialogCode.Accepted:
             return None
-        return dict(dlg.actions)
+        return dict(dlg.chosen_actions)
 
     def _adopt_pid_via_dialog(self, session: Any, target_label: str) -> bool:
         """Run the AdoptSessionDialog for *session*. Returns True on success."""
@@ -5015,11 +5047,13 @@ class MainWindow(QMainWindow):
         tree and re-syncs ``vp.panes``).
         """
         from cpsm.data.schema import remove_pane_from_viewport
+
         for sm in layout.monitors:
             for vp in sm.viewports:
                 # Snapshot to avoid mutating during iteration.
                 victims = [
-                    p for p in list(vp.panes)
+                    p
+                    for p in list(vp.panes)
                     if p is not exclude and p.connection_id == connection_id
                 ]
                 for p in victims:
@@ -5056,7 +5090,8 @@ class MainWindow(QMainWindow):
             return  # group not launched — don't auto-launch on edits
         try:
             session_svc.launch_group(
-                self._document, gid,
+                self._document,
+                gid,
                 monitors=self._query_live_monitors(),
             )
         except Exception as exc:
@@ -5068,9 +5103,7 @@ class MainWindow(QMainWindow):
         gid = self._active_group_id()
         if not gid or self._document is None:
             return
-        grp_idx = next(
-            (i for i, g in enumerate(self._document.groups) if g.id == gid), None
-        )
+        grp_idx = next((i for i, g in enumerate(self._document.groups) if g.id == gid), None)
         if grp_idx is None:
             return
         grp = self._document.groups[grp_idx]
@@ -5080,7 +5113,9 @@ class MainWindow(QMainWindow):
         self._document.groups[grp_idx] = updated
         _dd_log.info(
             "auto-added %s to group %s (members now: %s)",
-            connection_id, gid, updated.members,
+            connection_id,
+            gid,
+            updated.members,
         )
 
     def _find_pane_location_in_layout(
@@ -5148,9 +5183,10 @@ class MainWindow(QMainWindow):
                     snapshot.append(f"__pane_{s}={pane.connection_id}")
                     s += 1
         _dd_log.warning(
-            "_find_pane_in_layout_by_serial: target=%s NOT FOUND. layout id=%s "
-            "snapshot=[%s]",
-            target_pane_id, layout.id, ", ".join(snapshot),
+            "_find_pane_in_layout_by_serial: target=%s NOT FOUND. layout id=%s snapshot=[%s]",
+            target_pane_id,
+            layout.id,
+            ", ".join(snapshot),
         )
         for schema_monitor in layout.monitors:
             for vp in schema_monitor.viewports:
@@ -5176,7 +5212,10 @@ class MainWindow(QMainWindow):
         is_preview = self._radio_screens_preview.isChecked()
         _dd_log.info(
             "_on_screen_map_drop_connection: conn=%s pane=%s zone=%s is_preview=%s",
-            connection_id, target_pane_id, zone, is_preview,
+            connection_id,
+            target_pane_id,
+            zone,
+            is_preview,
         )
 
         if self._document is None:
@@ -5203,7 +5242,12 @@ class MainWindow(QMainWindow):
                 "_on_screen_map_drop_connection: layout=%s (id=%s) panes=%s",
                 layout.id if layout else None,
                 id(layout) if layout else None,
-                [p.connection_id for m in (layout.monitors if layout else []) for v in m.viewports for p in v.panes],
+                [
+                    p.connection_id
+                    for m in (layout.monitors if layout else [])
+                    for v in m.viewports
+                    for p in v.panes
+                ],
             )
             if layout is None:
                 return
@@ -5211,7 +5255,8 @@ class MainWindow(QMainWindow):
             located = self._find_pane_location_in_layout(layout, target_pane_id)
             _dd_log.info(
                 "_on_screen_map_drop_connection: located=%s zone=%s",
-                located is not None, zone,
+                located is not None,
+                zone,
             )
             if located is None:
                 _dd_log.warning(
@@ -5238,7 +5283,8 @@ class MainWindow(QMainWindow):
                 target_pane.connection_id = connection_id
                 _dd_log.info(
                     "_on_screen_map_drop_connection: REPLACE conn=%s at pane_idx=%d",
-                    connection_id, pane_idx,
+                    connection_id,
+                    pane_idx,
                 )
             else:
                 # Edge zone → split. Round 2: mutate the structured split
@@ -5247,10 +5293,12 @@ class MainWindow(QMainWindow):
 
                 from cpsm.data.schema import Pane as _Pane
                 from cpsm.data.schema import split_pane_in_viewport
+
                 if zone not in ("left", "right", "top", "bottom"):
                     return
                 edge_zone: Literal["left", "right", "top", "bottom"] = _cast(
-                    Literal["left", "right", "top", "bottom"], zone,
+                    Literal["left", "right", "top", "bottom"],
+                    zone,
                 )
                 new_pane = _Pane(connection_id=connection_id)
                 ok = split_pane_in_viewport(vp, target_pane, edge_zone, new_pane)
@@ -5262,7 +5310,8 @@ class MainWindow(QMainWindow):
                     return
                 _dd_log.info(
                     "_on_screen_map_drop_connection: SPLIT zone=%s conn=%s",
-                    zone, connection_id,
+                    zone,
+                    connection_id,
                 )
 
             # Auto-join the connection to the active group if needed
@@ -5328,7 +5377,10 @@ class MainWindow(QMainWindow):
         is_preview = self._radio_screens_preview.isChecked()
         _dd_log.info(
             "_on_screen_map_drop_pane: src=%s dst=%s zone=%s is_preview=%s",
-            src_pane_id, dst_pane_id, zone, is_preview,
+            src_pane_id,
+            dst_pane_id,
+            zone,
+            is_preview,
         )
 
         # Locate current layout
@@ -5350,7 +5402,8 @@ class MainWindow(QMainWindow):
 
             _dd_log.info(
                 "_on_screen_map_drop_pane: src_pane_found=%s dst_pane_found=%s",
-                src_pane is not None, dst_pane is not None,
+                src_pane is not None,
+                dst_pane is not None,
             )
 
             if src_pane is None or dst_pane is None:
@@ -5366,6 +5419,7 @@ class MainWindow(QMainWindow):
                     _dd_log.info("_on_screen_map_drop_pane: MOVE skipped (src is dst)")
                     return False
                 from cpsm.data.schema import remove_pane_from_viewport
+
                 # Find src's containing viewport
                 src_vp = None
                 for schema_monitor in layout.monitors:
@@ -5383,7 +5437,8 @@ class MainWindow(QMainWindow):
                 remove_pane_from_viewport(src_vp, src_pane)
                 _dd_log.info(
                     "_on_screen_map_drop_pane: MOVE-replace applied src_cid=%s dst_freed=%s",
-                    src_cid, dst_cid_old,
+                    src_cid,
+                    dst_cid_old,
                 )
             else:
                 # SPLIT — MOVE src to dst's viewport (insert next to dst), removing
@@ -5413,13 +5468,15 @@ class MainWindow(QMainWindow):
                     remove_pane_from_viewport,
                     split_pane_in_viewport,
                 )
+
                 remove_pane_from_viewport(src_vp, src_pane)
                 if zone not in ("left", "right", "top", "bottom"):
                     # Defensive: should never happen since center handled
                     # earlier, but keep edge-zone narrowing for the typer.
                     return False
                 edge_zone: Literal["left", "right", "top", "bottom"] = _cast(
-                    Literal["left", "right", "top", "bottom"], zone,
+                    Literal["left", "right", "top", "bottom"],
+                    zone,
                 )
                 ok = split_pane_in_viewport(dst_vp, dst_pane, edge_zone, src_pane)
                 if not ok:
@@ -5429,9 +5486,11 @@ class MainWindow(QMainWindow):
                     )
                     return False
                 _dd_log.info(
-                    "_on_screen_map_drop_pane: MOVE applied conn=%s "
-                    "src_vp=%s dst_vp=%s zone=%s",
-                    src_pane.connection_id, src_vp.id, dst_vp.id, zone,
+                    "_on_screen_map_drop_pane: MOVE applied conn=%s src_vp=%s dst_vp=%s zone=%s",
+                    src_pane.connection_id,
+                    src_vp.id,
+                    dst_vp.id,
+                    zone,
                 )
             return True
 
@@ -5444,9 +5503,7 @@ class MainWindow(QMainWindow):
             # Live mode: drive tmux backend AND mutate document
             if self._layout_controller is not None:
                 try:
-                    self._layout_controller.on_drop_pane(
-                        src_pane_id, dst_pane_id, zone, modifiers
-                    )
+                    self._layout_controller.on_drop_pane(src_pane_id, dst_pane_id, zone, modifiers)
                     self.load_document(self._document)
                 except Exception as exc:
                     QMessageBox.warning(self, "Drop failed", str(exc))
@@ -5477,7 +5534,9 @@ class MainWindow(QMainWindow):
         is_preview = self._radio_screens_preview.isChecked()
         _dd_log.info(
             "_on_screen_map_drop_connection_on_viewport: conn=%s vp=%s is_preview=%s",
-            connection_id, viewport_id, is_preview,
+            connection_id,
+            viewport_id,
+            is_preview,
         )
 
         # Locate the currently displayed layout
@@ -5490,7 +5549,8 @@ class MainWindow(QMainWindow):
                 layout = self._find_layout_by_id(grp.default_layout_id)
         _dd_log.info(
             "_on_screen_map_drop_connection_on_viewport: group=%s layout=%s",
-            group_id, layout.id if layout else None,
+            group_id,
+            layout.id if layout else None,
         )
         if layout is None:
             return
@@ -5527,6 +5587,7 @@ class MainWindow(QMainWindow):
             target_vp.panes = [new_pane]
         else:
             from cpsm.data.schema import _flatten_split_tree_leaves, split_pane_in_viewport
+
             anchor: Pane | None = None
             if target_vp.split_tree is not None:
                 leaves = _flatten_split_tree_leaves(target_vp.split_tree)
@@ -5588,9 +5649,7 @@ class MainWindow(QMainWindow):
         """
         if not ghost_key or not hasattr(self, "_screen_map_widget"):
             return
-        layout: ScreenLayout | None = getattr(
-            self._screen_map_widget, "_layout_data", None
-        )
+        layout: ScreenLayout | None = getattr(self._screen_map_widget, "_layout_data", None)
         if layout is None or not layout.monitors:
             return
 
@@ -5618,8 +5677,7 @@ class MainWindow(QMainWindow):
         self._screen_map_widget.set_layout(layout, self._query_live_monitors())
         n_vp = len(removed.viewports)
         self.statusBar().showMessage(
-            f"Removed disconnected monitor "
-            f"({n_vp} viewport{'s' if n_vp != 1 else ''} dropped).",
+            f"Removed disconnected monitor ({n_vp} viewport{'s' if n_vp != 1 else ''} dropped).",
             4000,
         )
 
@@ -5637,7 +5695,8 @@ class MainWindow(QMainWindow):
             return
         _dd_log.info(
             "_on_screen_map_drop_pane_on_viewport: src=%s vp=%s",
-            src_pane_id, viewport_id,
+            src_pane_id,
+            viewport_id,
         )
 
         layout = getattr(self._screen_map_widget, "_layout_data", None)
@@ -5670,7 +5729,8 @@ class MainWindow(QMainWindow):
 
         _dd_log.info(
             "_on_screen_map_drop_pane_on_viewport: src_found=%s dst_found=%s",
-            src_pane is not None, dst_vp is not None,
+            src_pane is not None,
+            dst_vp is not None,
         )
         if src_pane is None or src_vp is None or dst_vp is None:
             return
@@ -5683,6 +5743,7 @@ class MainWindow(QMainWindow):
             remove_pane_from_viewport,
             split_pane_in_viewport,
         )
+
         remove_pane_from_viewport(src_vp, src_pane)
         if dst_vp.split_tree is None:
             dst_vp.split_tree = src_pane
@@ -5697,7 +5758,8 @@ class MainWindow(QMainWindow):
                 split_pane_in_viewport(dst_vp, anchor, "right", src_pane)
         _dd_log.info(
             "_on_screen_map_drop_pane_on_viewport: MOVE conn=%s -> vp=%s",
-            src_pane.connection_id, dst_vp.id,
+            src_pane.connection_id,
+            dst_vp.id,
         )
         self._save_document()
         self._screen_map_widget.set_layout(layout, self._query_live_monitors())

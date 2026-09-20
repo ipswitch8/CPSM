@@ -65,9 +65,9 @@ Options:
   --keep-old-install   Do not remove a shadowing per-user install.
 
 Examples:
-  ./install.sh CPSM-0.2.0-x86_64.AppImage             # per-user install
-  sudo ./install.sh CPSM-0.2.0-x86_64.AppImage        # system-wide install
-  sudo ./install.sh CPSM-0.2.0-x86_64.AppImage --keep-old-install
+  ./install.sh CPSM-0.2.1-x86_64.AppImage             # per-user install
+  sudo ./install.sh CPSM-0.2.1-x86_64.AppImage        # system-wide install
+  sudo ./install.sh CPSM-0.2.1-x86_64.AppImage --keep-old-install
 EOF
     exit 1
 fi

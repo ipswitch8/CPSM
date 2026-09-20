@@ -464,9 +464,7 @@ class TestEmptyPaneNotRendered:
     ) -> None:
         self._setup(widget, monitor_service)
         texts = _find_text_items(widget)
-        assert not any("▭" in t for t in texts), (
-            f"▭ symbol must not appear; texts={texts}"
-        )
+        assert not any("▭" in t for t in texts), f"▭ symbol must not appear; texts={texts}"
 
 
 # ===========================================================================
@@ -810,22 +808,19 @@ class TestGhostMonitorBehavior:
             ],
         )
 
-    def test_ghost_stripe_below_real_bbox_no_overlap(
-        self, qtbot, widget: ScreenMapWidget
-    ) -> None:
+    def test_ghost_stripe_below_real_bbox_no_overlap(self, qtbot, widget: ScreenMapWidget) -> None:
         mon = _make_monitor_info(identifier="mon-live", w=1920, h=1080)
         widget.set_layout(self._layout_with_ghost(), [mon])
         # Real monitor bbox spans y ∈ [0, 1080*scale].  Every ghost must
         # start below that bbox (with the configured gutter).
         assert widget._ghost_registry, "expected one ghost record"
         from cpsm.ui.widgets.screen_map import _GHOST_STRIPE_Y_GUTTER
+
         real_max_y = 1080 * (800 / max(1920, 1080))
         for g in widget._ghost_registry:
             assert g.scene_y >= real_max_y + _GHOST_STRIPE_Y_GUTTER - 0.5
 
-    def test_ghost_hit_test_returns_record_not_pane(
-        self, qtbot, widget: ScreenMapWidget
-    ) -> None:
+    def test_ghost_hit_test_returns_record_not_pane(self, qtbot, widget: ScreenMapWidget) -> None:
         mon = _make_monitor_info(identifier="mon-live", w=1920, h=1080)
         widget.set_layout(self._layout_with_ghost(), [mon])
         ghosts = widget._ghost_registry
@@ -875,16 +870,13 @@ class TestGhostMonitorBehavior:
         overlay = next(
             item
             for item in widget.scene.items()
-            if isinstance(item, QGraphicsTextItem)
-            and "disconnected" in item.toPlainText().lower()
+            if isinstance(item, QGraphicsTextItem) and "disconnected" in item.toPlainText().lower()
         )
         assert overlay.flags() & QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations
         # And its point size must be readable (>= 10).
         assert overlay.font().pointSize() >= 10
 
-    def test_context_menu_on_ghost_shows_ghost_menu(
-        self, qtbot, widget: ScreenMapWidget
-    ) -> None:
+    def test_context_menu_on_ghost_shows_ghost_menu(self, qtbot, widget: ScreenMapWidget) -> None:
         """Right-click on a ghost rect must show the ghost menu (containing
         the 'Remove Disconnected Monitor' action), not a pane menu.
         """
@@ -900,9 +892,7 @@ class TestGhostMonitorBehavior:
         assert "screenmap_ctx_ghost_remove" in action_object_names
         assert "screenmap_ctx_ghost_save_layout" in action_object_names
 
-    def test_ghost_remove_signal_emits_ghost_key(
-        self, qtbot, widget: ScreenMapWidget
-    ) -> None:
+    def test_ghost_remove_signal_emits_ghost_key(self, qtbot, widget: ScreenMapWidget) -> None:
         """Triggering the ghost menu's Remove action emits
         remove_disconnected_monitor_requested with the ghost key.
         """
@@ -927,7 +917,7 @@ class TestGhostMonitorBehavior:
         (which would populate the Inspector with the pane visually behind
         the ghost) and no drag anchor set.
         """
-        from PySide6.QtCore import QEvent, QPoint, QPointF
+        from PySide6.QtCore import QEvent, QPointF
         from PySide6.QtGui import QMouseEvent
 
         mon = _make_monitor_info(identifier="mon-live")

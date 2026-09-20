@@ -88,9 +88,7 @@ def _make_layout_with_pane(lid: str, conn_id: str | None, vp_id: str = "vp-test"
     return ScreenLayout(id=lid, name=lid, monitors=[Monitor(viewports=[vp])])
 
 
-def _make_layout_with_empty_viewport(
-    lid: str, vp_id: str = "vp-empty"
-) -> ScreenLayout:
+def _make_layout_with_empty_viewport(lid: str, vp_id: str = "vp-empty") -> ScreenLayout:
     """One monitor, one viewport, zero panes."""
     vp = Viewport(
         id=vp_id,
@@ -194,12 +192,8 @@ class TestAutoLayoutPrefillsConnectionIds:
                 for pane in vp.panes:
                     all_pane_ids.append(pane.connection_id)
 
-        assert len(all_pane_ids) == 3, (
-            f"Expected 3 panes, got {len(all_pane_ids)}: {all_pane_ids}"
-        )
-        assert None not in all_pane_ids, (
-            f"Some panes still have connection_id=None: {all_pane_ids}"
-        )
+        assert len(all_pane_ids) == 3, f"Expected 3 panes, got {len(all_pane_ids)}: {all_pane_ids}"
+        assert None not in all_pane_ids, f"Some panes still have connection_id=None: {all_pane_ids}"
         assert set(all_pane_ids) == {"conn-a", "conn-b", "conn-c"}, (
             f"Unexpected connection_ids: {all_pane_ids}"
         )
@@ -214,9 +208,7 @@ class TestDropConnectionOnPanePreview:
     """Bug 2: drop_connection_requested in Preview mode must mutate the
     document (replace pane.connection_id) and call save."""
 
-    def test_screens_drop_connection_on_pane_replaces_in_preview(
-        self, qtbot: Any
-    ) -> None:
+    def test_screens_drop_connection_on_pane_replaces_in_preview(self, qtbot: Any) -> None:
         """Emit drop_connection_requested('b', 'a', 'center', 0) from the
         Screens-tab widget; the pane with connection_id='a' must be updated
         to 'b' and save must be called."""
@@ -255,9 +247,7 @@ class TestDropConnectionOnPanePreview:
         )
         assert len(save_calls) >= 1, "Expected _save_document to be called at least once"
 
-    def test_screens_drop_connection_on_empty_pane_assigns_in_preview(
-        self, qtbot: Any
-    ) -> None:
+    def test_screens_drop_connection_on_empty_pane_assigns_in_preview(self, qtbot: Any) -> None:
         """Pane with connection_id=None is rendered as __empty_0.
         Dropping 'conn-x' on '__empty_0' must assign connection_id='conn-x'."""
         layout = _make_layout_with_pane("test-empty-layout", None, vp_id="vp-empty")
@@ -282,9 +272,7 @@ class TestDropConnectionOnPanePreview:
         win._save_document = lambda: save_calls.append(1)  # type: ignore[method-assign]
 
         # The pane has connection_id=None, so pane_serial=0 → pane_id="__empty_0"
-        win._screen_map_widget.drop_connection_requested.emit(
-            "conn-x", "__empty_0", "center", 0
-        )
+        win._screen_map_widget.drop_connection_requested.emit("conn-x", "__empty_0", "center", 0)
         QApplication.processEvents()
 
         updated_layout = win._document.screen_layouts[0]
@@ -305,9 +293,7 @@ class TestDropOnEmptyViewport:
     """Bug 3: dropping on a viewport with no panes must emit
     drop_connection_on_viewport_requested and append a new Pane."""
 
-    def _make_widget_with_empty_viewport(
-        self, vp_id: str = "vp-empty"
-    ) -> ScreenMapWidget:
+    def _make_widget_with_empty_viewport(self, vp_id: str = "vp-empty") -> ScreenMapWidget:
         """Build a standalone ScreenMapWidget with one monitor and one empty viewport."""
         widget = ScreenMapWidget()
         monitor = _make_monitor_info(identifier="test-mon", qt_index=0)
@@ -395,9 +381,7 @@ class TestDropOnEmptyViewport:
         assert dropped_conn_id == "conn-dropped", f"Wrong conn_id: {dropped_conn_id!r}"
         assert dropped_vp_id == "vp-empty", f"Wrong viewport_id: {dropped_vp_id!r}"
 
-    def test_screens_drop_on_empty_viewport_appends_pane_in_preview(
-        self, qtbot: Any
-    ) -> None:
+    def test_screens_drop_on_empty_viewport_appends_pane_in_preview(self, qtbot: Any) -> None:
         """Integration: emit drop_connection_on_viewport_requested on Screens tab;
         the layout's viewport must gain a new pane with the dropped connection_id
         and the document must be saved."""
@@ -424,9 +408,7 @@ class TestDropOnEmptyViewport:
         win._save_document = lambda: save_calls.append(1)  # type: ignore[method-assign]
 
         # Emit the viewport drop signal directly
-        win._screen_map_widget.drop_connection_on_viewport_requested.emit(
-            "conn-b", "vp-empty", 0
-        )
+        win._screen_map_widget.drop_connection_on_viewport_requested.emit("conn-b", "vp-empty", 0)
         QApplication.processEvents()
 
         updated_layout = win._document.screen_layouts[0]

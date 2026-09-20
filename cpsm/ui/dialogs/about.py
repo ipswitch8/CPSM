@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from cpsm import __version__, version_string
+from cpsm import version_string
 
 __all__ = ["AboutDialog"]
 
@@ -66,9 +66,7 @@ class AboutDialog(QDialog):
         version_label = QLabel(f"<b>Version:</b> {version_string()}")
         version_label.setObjectName("label_about_version")
         version_label.setAccessibleName("About Version")
-        version_label.setAccessibleDescription(
-            "Current version and the commit it was built from"
-        )
+        version_label.setAccessibleDescription("Current version and the commit it was built from")
         version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # This string exists to be reported back ("which build are you on?"),
         # and it contains a commit hash.  Retyping a hash by hand is how

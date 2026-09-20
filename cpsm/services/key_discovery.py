@@ -226,9 +226,8 @@ class KeyDiscoveryService:
                 private_path = _expand_identity_file(identity_value, self.ssh_dir)
                 if not private_path.exists():
                     continue
-                public_path = private_path.with_name(private_path.name + ".pub")
-                if not public_path.exists():
-                    public_path = None
+                _pub = private_path.with_name(private_path.name + ".pub")
+                public_path: Path | None = _pub if _pub.exists() else None
                 results.append(
                     KeyCandidate(
                         private_path=private_path,
@@ -292,9 +291,8 @@ class KeyDiscoveryService:
             private_path = self.ssh_dir / name
             if not private_path.exists():
                 continue
-            public_path = self.ssh_dir / f"{name}.pub"
-            if not public_path.exists():
-                public_path = None
+            _pub = self.ssh_dir / f"{name}.pub"
+            public_path = _pub if _pub.exists() else None
             results.append(
                 KeyCandidate(
                     private_path=private_path,

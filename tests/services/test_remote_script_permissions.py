@@ -22,7 +22,6 @@ import re
 import shutil
 import stat
 import subprocess
-import tempfile
 import types
 from pathlib import Path
 
@@ -92,8 +91,8 @@ def _emit_secure_cmd(rendered: str, script_path: str, sudo_user: str) -> str:
     """Return the remote command string the launcher would send over SSH."""
     harness = (
         f"{_extract_secure_fn(rendered)}\n"
-        f'_REMOTE_SCRIPT={_shq(script_path)}\n'
-        f'_SUDO_USER={_shq(sudo_user)}\n'
+        f"_REMOTE_SCRIPT={_shq(script_path)}\n"
+        f"_SUDO_USER={_shq(sudo_user)}\n"
         "_secure_remote_cmd\n"
     )
     result = subprocess.run(
@@ -113,9 +112,7 @@ def _shq(value: str) -> str:
     return shlex.quote(value)
 
 
-def _run_secure_cmd(
-    command: str, shell: str = "bash"
-) -> subprocess.CompletedProcess[str]:
+def _run_secure_cmd(command: str, shell: str = "bash") -> subprocess.CompletedProcess[str]:
     """Execute the emitted remote command under *shell*, as sshd's login shell would."""
     return subprocess.run(
         [shell, "-c", command],
@@ -232,9 +229,7 @@ class TestEmittedSnippetBehaviour:
         result = _run_secure_cmd(cmd)
 
         assert result.returncode == 0, f"snippet failed: {result.stderr}"
-        assert _mode(str(victim)) == 0o750, (
-            f"expected 0750, got {_mode(str(victim)):04o}"
-        )
+        assert _mode(str(victim)) == 0o750, f"expected 0750, got {_mode(str(victim)):04o}"
         import grp
 
         assert grp.getgrgid(os.stat(victim).st_gid).gr_name == group
@@ -249,9 +244,7 @@ class TestEmittedSnippetBehaviour:
 
     def test_unresolvable_account_fails_closed(self, victim: Path) -> None:
         """No group, no ACL — abort loudly rather than widen the mode."""
-        cmd = _emit_secure_cmd(
-            _render(sudo_user="nosuchacct12345"), str(victim), "nosuchacct12345"
-        )
+        cmd = _emit_secure_cmd(_render(sudo_user="nosuchacct12345"), str(victim), "nosuchacct12345")
         result = _run_secure_cmd(cmd)
 
         assert result.returncode != 0, (
@@ -342,9 +335,7 @@ class TestFallbackChain:
         shutil.which("setfacl") is None or shutil.which("getfacl") is None,
         reason="ACL tools not installed",
     )
-    def test_acl_branch_actually_grants_access_when_chgrp_cannot(
-        self, victim: Path
-    ) -> None:
+    def test_acl_branch_actually_grants_access_when_chgrp_cannot(self, victim: Path) -> None:
         """Exercise the ACL branch for real, not just its presence in the text.
 
         Picks an account this test user is not a group member of, so ``chgrp``
@@ -353,7 +344,6 @@ class TestFallbackChain:
         been disabled, which is exactly the regression worth catching.
         """
         import grp
-        import pwd
 
         my_groups = {g.gr_name for g in grp.getgrall() if os.getgid() == g.gr_gid}
         my_groups |= {grp.getgrgid(gid).gr_name for gid in os.getgroups()}

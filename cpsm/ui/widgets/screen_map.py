@@ -116,10 +116,10 @@ _PANE_BRUSH_COLOR = QColor("#2a2a2a")
 #   amber  — dropped   (pane alive but SSH not running; reconnect-loop wait)
 #   blue   — disconnected (terminal closed, pane gone, or clean exit)
 #   red    — error     (pane died with non-zero exit code)
-_PANE_PEN_CONNECTED = QColor("#22c55e")     # green
-_PANE_PEN_DROPPED = QColor("#f59e0b")        # amber
-_PANE_PEN_DISCONNECTED = QColor("#3b82f6")   # blue
-_PANE_PEN_ERROR = QColor("#ef4444")          # red
+_PANE_PEN_CONNECTED = QColor("#22c55e")  # green
+_PANE_PEN_DROPPED = QColor("#f59e0b")  # amber
+_PANE_PEN_DISCONNECTED = QColor("#3b82f6")  # blue
+_PANE_PEN_ERROR = QColor("#ef4444")  # red
 _PANE_EMPTY_PEN_COLOR = QColor("#555577")
 _PANE_EMPTY_BRUSH_COLOR = QColor("#111122")
 _GHOST_BRUSH_COLOR = QColor(50, 60, 80, 140)
@@ -131,9 +131,9 @@ _GHOST_PEN_COLOR = QColor("#6666aa")
 # events would fall through the decorative rect to the pane behind it).
 _GHOST_STRIPE_Y_GUTTER = 40.0  # scene units below real monitor bbox
 _GHOST_STRIPE_X_GUTTER = 20.0  # between adjacent ghosts
-_GHOST_STRIPE_W_RATIO = 0.30   # of _MAX_CANVAS_DIM * scale
-_GHOST_STRIPE_H_RATIO = 0.18   # of _MAX_CANVAS_DIM * scale
-_GHOST_TEXT_POINT_SIZE = 10    # rendered at fixed screen size (ItemIgnoresTransformations)
+_GHOST_STRIPE_W_RATIO = 0.30  # of _MAX_CANVAS_DIM * scale
+_GHOST_STRIPE_H_RATIO = 0.18  # of _MAX_CANVAS_DIM * scale
+_GHOST_TEXT_POINT_SIZE = 10  # rendered at fixed screen size (ItemIgnoresTransformations)
 
 
 def _ghost_rect_bounds(
@@ -155,9 +155,7 @@ def _ghost_rect_bounds(
     return cx, cy, ghost_w, ghost_h
 
 
-def _ghost_key_for_monitor(
-    layout_monitors: list, schema_monitor  # noqa: ANN001 - avoids circular import concerns
-) -> str:
+def _ghost_key_for_monitor(layout_monitors: list[Any], schema_monitor: Any) -> str:
     """Stable identifier for a ghost record: prefer the schema
     monitor's identifier; fall back to a synthetic index-based key when
     identifier is missing/empty.
@@ -166,6 +164,8 @@ def _ghost_key_for_monitor(
     if ident:
         return ident
     return f"__ghost_idx_{layout_monitors.index(schema_monitor)}"
+
+
 _LABEL_COLOR = QColor("#e0e8f0")
 _EMPTY_LABEL_COLOR = QColor("#7788aa")
 _GLYPH_COLOR = QColor("#aaccee")
@@ -218,6 +218,7 @@ def group_color_for_id(group_id: str, override: str | None = None) -> QColor:
         if c.isValid():
             return c
     import zlib
+
     idx = zlib.crc32(group_id.encode("utf-8")) % len(GROUP_PALETTE)
     return QColor(GROUP_PALETTE[idx])
 
@@ -427,9 +428,7 @@ def _compute_tree_rects(
     n = len(node.children)
     if n == 0:
         return []
-    sizes_pct = (
-        [*node.ratios, 1.0 - sum(node.ratios)] if node.ratios else [1.0 / n] * n
-    )
+    sizes_pct = [*node.ratios, 1.0 - sum(node.ratios)] if node.ratios else [1.0 / n] * n
     out: list[tuple[Any, tuple[float, float, float, float]]] = []
     if node.direction == "h":
         cx = x
@@ -530,8 +529,9 @@ def _draw_pane(
     # Big centered session name — pick the largest font that fits the pane
     # (90 % of width and 50 % of height) using actual font metrics.
     conn = connection_lookup(cid)
-    display_name = (conn.name if (conn is not None and conn.name) else cid)
+    display_name = conn.name if (conn is not None and conn.name) else cid
     from PySide6.QtGui import QFontMetricsF
+
     max_w = pw * 0.90
     max_h = ph * 0.50
     font_size = 6
@@ -586,8 +586,16 @@ def _draw_viewport(
         pane_pairs = _compute_tree_rects(tree, vp_x, vp_y, vp_w, vp_h)
         for i, (pane, (px, py, pw, ph)) in enumerate(pane_pairs):
             _draw_pane(
-                scene, px, py, pw, ph, i,
-                pane.connection_id, connection_lookup, vp_rect, status_lookup,
+                scene,
+                px,
+                py,
+                pw,
+                ph,
+                i,
+                pane.connection_id,
+                connection_lookup,
+                vp_rect,
+                status_lookup,
             )
     else:
         n_panes = len(viewport.panes)
@@ -603,8 +611,16 @@ def _draw_viewport(
             for i, (px, py, pw, ph) in enumerate(pane_rects_coords):
                 pane = viewport.panes[i]
                 _draw_pane(
-                    scene, px, py, pw, ph, i,
-                    pane.connection_id, connection_lookup, vp_rect, status_lookup,
+                    scene,
+                    px,
+                    py,
+                    pw,
+                    ph,
+                    i,
+                    pane.connection_id,
+                    connection_lookup,
+                    vp_rect,
+                    status_lookup,
                 )
 
     return vp_rect
@@ -791,7 +807,9 @@ def _build_scene(
                 vp_y = by + (gp.y / 100.0) * bh
                 vp_w = (gp.w / 100.0) * bw
                 vp_h = (gp.h / 100.0) * bh
-                _draw_viewport(scene, vp_x, vp_y, vp_w, vp_h, vp, connection_lookup, mon_rect, status_lookup)
+                _draw_viewport(
+                    scene, vp_x, vp_y, vp_w, vp_h, vp, connection_lookup, mon_rect, status_lookup
+                )
 
         else:
             # Ghost rect — schema monitor in layout with no matching live
@@ -829,9 +847,7 @@ def _build_scene(
             font.setBold(True)
             overlay_item.setFont(font)
             overlay_item.setDefaultTextColor(_GHOST_PEN_COLOR)
-            overlay_item.setFlag(
-                QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True
-            )
+            overlay_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True)
             # Anchor at the ghost rect's scene-space center.  Because the
             # item ignores transforms, the text itself renders at a fixed
             # pixel size around that anchor — its own bounding rect is in
@@ -1162,9 +1178,7 @@ def _collect_viewport_rects(
     result: list[tuple[str, QRectF]] = []
     for schema_idx, schema_monitor in enumerate(layout.monitors):
         for vp in schema_monitor.viewports:
-            r = _viewport_scene_rect(
-                schema_monitor, vp, monitors, min_x, min_y, scale, schema_idx
-            )
+            r = _viewport_scene_rect(schema_monitor, vp, monitors, min_x, min_y, scale, schema_idx)
             if r is not None:
                 result.append((vp.id, r))
     return result
@@ -1766,15 +1780,15 @@ class ScreenMapWidget(QWidget):
         formats = ", ".join(mime.formats())
         _dd_log.info(
             "screen_map.drop: mime_formats=%s scene_pos=(%.1f, %.1f)",
-            formats, sx, sy,
+            formats,
+            sx,
+            sy,
         )
 
         rec = self.pane_at_scene_pos(sx, sy)
         modifiers = event.modifiers().value
 
-        _dd_log.info(
-            "screen_map.drop: hit_pane=%s", rec.pane_id if rec is not None else None
-        )
+        _dd_log.info("screen_map.drop: hit_pane=%s", rec.pane_id if rec is not None else None)
 
         if rec is not None:
             lx, ly = rec.local_pos(sx, sy)
@@ -1784,7 +1798,9 @@ class ScreenMapWidget(QWidget):
                 conn_id = mime.data(MIME_CONNECTION_ID).toStdString()
                 _dd_log.info(
                     "screen_map.drop: emit drop_connection_requested conn=%s pane=%s zone=%s",
-                    conn_id, rec.pane_id, zone,
+                    conn_id,
+                    rec.pane_id,
+                    zone,
                 )
                 self.drop_connection_requested.emit(conn_id, rec.pane_id, zone, modifiers)
                 event.acceptProposedAction()
@@ -1793,7 +1809,9 @@ class ScreenMapWidget(QWidget):
                 if src_pane_id != rec.pane_id:
                     _dd_log.info(
                         "screen_map.drop: emit drop_pane_requested src=%s dst=%s zone=%s",
-                        src_pane_id, rec.pane_id, zone,
+                        src_pane_id,
+                        rec.pane_id,
+                        zone,
                     )
                     self.drop_pane_requested.emit(src_pane_id, rec.pane_id, zone, modifiers)
                 event.acceptProposedAction()
@@ -1806,7 +1824,8 @@ class ScreenMapWidget(QWidget):
                 if vp_id is not None:
                     _dd_log.info(
                         "screen_map.drop: emit drop_pane_on_viewport_requested src=%s vp=%s",
-                        src_pane_id, vp_id,
+                        src_pane_id,
+                        vp_id,
                     )
                     self.drop_pane_on_viewport_requested.emit(src_pane_id, vp_id, modifiers)
                 else:
@@ -1823,7 +1842,8 @@ class ScreenMapWidget(QWidget):
                     conn_id = mime.data(MIME_CONNECTION_ID).toStdString()
                     _dd_log.info(
                         "screen_map.drop: emit drop_connection_on_viewport_requested conn=%s vp=%s",
-                        conn_id, vp_id,
+                        conn_id,
+                        vp_id,
                     )
                     self.drop_connection_on_viewport_requested.emit(conn_id, vp_id, modifiers)
                     event.acceptProposedAction()
@@ -2027,9 +2047,7 @@ class ScreenMapWidget(QWidget):
             self._connection_lookup,
             self._status_lookup,
         )
-        self._ghost_registry = _collect_ghost_records(
-            self._layout_data, self._monitors
-        )
+        self._ghost_registry = _collect_ghost_records(self._layout_data, self._monitors)
         self._view.fitInView(self._scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
     def _redraw_multi(self) -> None:
@@ -2245,9 +2263,7 @@ class _DragDropView(QGraphicsView):
                 _dd_log.info("screen_map.pane_drag_start: pane=%s", self._press_pane_id)
                 drag = QDrag(self)
                 mime = QMimeData()
-                mime.setData(
-                    MIME_PANE_ID, QByteArray(self._press_pane_id.encode("utf-8"))
-                )
+                mime.setData(MIME_PANE_ID, QByteArray(self._press_pane_id.encode("utf-8")))
                 drag.setMimeData(mime)
                 self._press_pos = None
                 self._press_pane_id = None

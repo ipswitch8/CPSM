@@ -27,7 +27,6 @@ runnable on a clean checkout.
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -65,12 +64,10 @@ class TestBuildScriptDoesNotReintroduceTheShim:
         apprun = text[start:end]
 
         assert "LD_PRELOAD" not in apprun, (
-            "the generated AppRun sets LD_PRELOAD — this is how the leaking "
-            "shim gets loaded"
+            "the generated AppRun sets LD_PRELOAD — this is how the leaking shim gets loaded"
         )
         assert HOOK_LIB not in apprun, (
-            f"the generated AppRun references {HOOK_LIB}, the library that leaks "
-            f"~413 MB/day"
+            f"the generated AppRun references {HOOK_LIB}, the library that leaks ~413 MB/day"
         )
         assert "exec " in apprun, "the generated AppRun must exec the binary directly"
 
@@ -140,6 +137,5 @@ class TestBuiltAppImageIsFreeOfTheShim:
         artifact.
         """
         assert not (extracted / "runtime" / "compat").is_dir(), (
-            "runtime/compat is present — this AppImage was built with "
-            "appimage-builder"
+            "runtime/compat is present — this AppImage was built with appimage-builder"
         )

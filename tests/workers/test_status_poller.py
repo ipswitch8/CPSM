@@ -567,9 +567,7 @@ class TestStatusPollerThread:
 
         assert received[0].pane_id == "%1"
 
-    def test_list_panes_failure_synthesizes_unknown_for_known_panes(
-        self, qtbot: object
-    ) -> None:
+    def test_list_panes_failure_synthesizes_unknown_for_known_panes(self, qtbot: object) -> None:
         """When tmux server dies after we knew about a pane, list_panes raises.
         Regression: the poller used to ``continue`` on exception and freeze
         the snapshot, leaving connection borders stuck on red after the last
@@ -596,9 +594,7 @@ class TestStatusPollerThread:
         # (synthesized because the next list_panes raised, which we now treat
         # as panes=[] so the disappeared branch fires).
         assert any(s.pane_id == "%1" and s.state != PaneState.UNKNOWN for s in snaps[0])
-        assert any(
-            s.pane_id == "%1" and s.state is PaneState.UNKNOWN for s in snaps[1]
-        )
+        assert any(s.pane_id == "%1" and s.state is PaneState.UNKNOWN for s in snaps[1])
 
 
 # ---------------------------------------------------------------------------

@@ -15,7 +15,7 @@ conflict:
   Skip           — omit this connection from the launch entirely.
 
 The dialog is purely a chooser — it does NOT execute the kill or the
-launch.  Callers read ``dialog.actions`` (a dict mapping connection_id →
+launch.  Callers read ``dialog.chosen_actions`` (a dict mapping connection_id →
 ``"adopt" | "duplicate" | "skip"``) after ``exec()`` returns Accepted.
 """
 
@@ -39,7 +39,7 @@ from PySide6.QtWidgets import (
 
 from cpsm.services.discovery_service import DiscoveredSession
 
-__all__ = ["LaunchConflictDialog", "LaunchConflictAction"]
+__all__ = ["LaunchConflictAction", "LaunchConflictDialog"]
 
 LaunchConflictAction = Literal["adopt", "duplicate", "skip"]
 
@@ -75,7 +75,7 @@ class LaunchConflictDialog(QDialog):
         self.setMinimumWidth(560)
 
         self._conflicts = conflicts
-        self.actions: dict[str, LaunchConflictAction] = {}
+        self.chosen_actions: dict[str, LaunchConflictAction] = {}
         # connection_id → QButtonGroup managing the row's three radios.
         self._row_groups: dict[str, QButtonGroup] = {}
 
@@ -121,8 +121,8 @@ class LaunchConflictDialog(QDialog):
         ok_btn.setObjectName("btn_conflict_continue")
         cancel_btn = buttons.addButton(QDialogButtonBox.StandardButton.Cancel)
         cancel_btn.setObjectName("btn_conflict_cancel")
-        buttons.accepted.connect(self._on_accept)  # type: ignore[arg-type]
-        buttons.rejected.connect(self.reject)  # type: ignore[arg-type]
+        buttons.accepted.connect(self._on_accept)
+        buttons.rejected.connect(self.reject)
         root.addWidget(buttons)
 
     def _format_intro(self) -> str:
@@ -183,12 +183,14 @@ class LaunchConflictDialog(QDialog):
 
     @staticmethod
     def _format_row_tooltip(sess: DiscoveredSession) -> str:
-        return "\n".join([
-            f"PID: {sess.pid}",
-            f"Kind: {sess.kind}",
-            f"Cmdline: {sess.cmdline}",
-            f"TTY: {sess.tty}",
-        ])
+        return "\n".join(
+            [
+                f"PID: {sess.pid}",
+                f"Kind: {sess.kind}",
+                f"Cmdline: {sess.cmdline}",
+                f"TTY: {sess.tty}",
+            ]
+        )
 
     def _on_accept(self) -> None:
         out: dict[str, LaunchConflictAction] = {}
@@ -202,6 +204,6 @@ class LaunchConflictDialog(QDialog):
             if action not in ("adopt", "duplicate", "skip"):
                 self.reject()
                 return
-            out[conn_id] = action  # type: ignore[assignment]
-        self.actions = out
+            out[conn_id] = action
+        self.chosen_actions = out
         self.accept()

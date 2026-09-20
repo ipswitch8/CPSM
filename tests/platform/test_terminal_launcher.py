@@ -127,7 +127,8 @@ def test_gnome_terminal_launcher_spawn_invokes_subprocess(
 
     monkeypatch.setattr("subprocess.Popen", _fake_popen)
     pid = GnomeTerminalLauncher().spawn(
-        ["tmux", "attach", "-t", "test"], title="My Title",
+        ["tmux", "attach", "-t", "test"],
+        title="My Title",
     )
     assert pid == 12345
     assert len(captured) == 1

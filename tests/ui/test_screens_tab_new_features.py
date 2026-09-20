@@ -411,9 +411,7 @@ class TestCanvasContextMenu:
             serial="",
             qt_index=0,
         )
-        win._services = SimpleNamespace(
-            monitor_service=SimpleNamespace(snapshot=lambda: [mon])
-        )
+        win._services = SimpleNamespace(monitor_service=SimpleNamespace(snapshot=lambda: [mon]))
 
         # Render the document's layout on the canvas. The handler reads the
         # canvas layout back via _cmx_get_layout(), so this is the same state
@@ -535,9 +533,7 @@ class TestSaveButton:
         QApplication.processEvents()
         win._save_document = lambda: None  # type: ignore[method-assign]
 
-        new_layout = ScreenLayout(
-            id="existing-id", name="Updated Name", monitors=[]
-        )
+        new_layout = ScreenLayout(id="existing-id", name="Updated Name", monitors=[])
         win._screen_map_widget.set_layout(new_layout, [])
         btn = win.findChild(QPushButton, "btn_screens_save")
         assert btn is not None

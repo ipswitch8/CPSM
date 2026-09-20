@@ -18,7 +18,7 @@ def _source_root() -> Path:
 def _read_stamp() -> str:
     """The commit recorded at package time, or "" if there is no stamp."""
     try:
-        from cpsm import _build_stamp  # type: ignore[attr-defined]
+        from cpsm import _build_stamp
 
         return str(getattr(_build_stamp, "COMMIT", "") or "")
     except Exception:
@@ -101,5 +101,5 @@ def build_id() -> str:
 
 
 def version_string() -> str:
-    """``0.2.0 (build 1a2b3c4)`` — what --version and the About dialog show."""
+    """``0.2.1 (build 1a2b3c4)`` — what --version and the About dialog show."""
     return f"{__version__} (build {build_id()})"

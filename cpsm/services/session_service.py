@@ -20,6 +20,7 @@ boundary, it is rejected regardless of how the template was composed.
 from __future__ import annotations
 
 import concurrent.futures
+import contextlib
 import logging
 import os
 import re
@@ -73,9 +74,7 @@ _LOCAL_PROFILES = frozenset({"claude-local", "local-shell"})
 # pane_start_command is set by tmux when the pane is spawned and CANNOT be
 # overwritten by the running process — unlike pane_title, which claude/ssh
 # routinely stomp via terminal escape sequences.
-_CPSM_LAUNCHER_RE = re.compile(
-    r"cpsm-launcher-(?P<id>.+?)-[A-Za-z0-9_]{6,16}\.sh"
-)
+_CPSM_LAUNCHER_RE = re.compile(r"cpsm-launcher-(?P<id>.+?)-[A-Za-z0-9_]{6,16}\.sh")
 
 
 def _extract_cpsm_conn_id(start_command: str) -> str | None:
@@ -267,6 +266,7 @@ class SessionService:
             self._backend.respawn_pane(pane_target, f"bash {tmpfile}")
             # Tag pane for cross-session move identification (Round-late).
             import contextlib as _ctx
+
             with _ctx.suppress(Exception):
                 self._backend.set_pane_title(pane_target, f"cpsm:{conn.id}")
 
@@ -485,7 +485,6 @@ class SessionService:
         present (mixed-orientation custom string), falling back to the
         preset map or ``custom_layout_string`` for legacy viewports.
         """
-        import contextlib
 
         from cpsm.data.schema import Pane as _Pane
         from cpsm.data.schema import Split as _Split
@@ -494,15 +493,17 @@ class SessionService:
         if isinstance(tree, _Split):
             try:
                 layout_str = _tmux_layout_string_from_tree(
-                    tree, self._DEFAULT_LAYOUT_W, self._DEFAULT_LAYOUT_H,
+                    tree,
+                    self._DEFAULT_LAYOUT_W,
+                    self._DEFAULT_LAYOUT_H,
                 )
                 self._backend.select_layout(target_window, layout_str)
                 return
             except Exception as exc:
                 logger.warning(
-                    "Custom layout-string apply failed for %s: %s; "
-                    "falling back to preset.",
-                    target_window, exc,
+                    "Custom layout-string apply failed for %s: %s; falling back to preset.",
+                    target_window,
+                    exc,
                 )
         # Tree is None or a single Pane (or generation failed). Use
         # preset / legacy custom_layout_string.
@@ -515,7 +516,8 @@ class SessionService:
         elif vp.tmux_layout == "custom" and vp.custom_layout_string:
             with contextlib.suppress(Exception):
                 self._backend.select_layout(
-                    target_window, vp.custom_layout_string,
+                    target_window,
+                    vp.custom_layout_string,
                 )
 
     def _launch_group_with_layout(
@@ -545,12 +547,10 @@ class SessionService:
         # Build resolution maps for monitor placement (Round 4)
         live_monitors = monitors or []
         ident_map = {
-            getattr(m, "identifier", ""): m
-            for m in live_monitors if getattr(m, "identifier", "")
+            getattr(m, "identifier", ""): m for m in live_monitors if getattr(m, "identifier", "")
         }
         index_map = {
-            getattr(m, "qt_index", -1): m
-            for m in live_monitors if getattr(m, "qt_index", -1) >= 0
+            getattr(m, "qt_index", -1): m for m in live_monitors if getattr(m, "qt_index", -1) >= 0
         }
 
         # Snapshot existing prefix-sessions and their panes (one tmux call
@@ -560,7 +560,6 @@ class SessionService:
         # or dead) and reconcile in place — only DEAD panes get respawned,
         # ALIVE ones are left untouched. Dead-only sessions are killed and
         # recreated fresh.
-        import contextlib
         prefix = f"cpsm-group-{group_id}-mon-"
         try:
             all_sessions_list = list(self._backend.list_sessions())
@@ -624,11 +623,7 @@ class SessionService:
         for mon_idx, monitor in enumerate(layout.monitors):
             dst_sess = f"cpsm-group-{group_id}-mon-{mon_idx}"
             for vp in monitor.viewports:
-                leaves = (
-                    _flatten(vp.split_tree)
-                    if vp.split_tree is not None
-                    else list(vp.panes)
-                )
+                leaves = _flatten(vp.split_tree) if vp.split_tree is not None else list(vp.panes)
                 for pane in leaves:
                     cid = pane.connection_id
                     if cid and cid in tagged_panes:
@@ -656,12 +651,12 @@ class SessionService:
                     sessions_with_default_to_kill.add(dst_sess)
                 try:
                     self._backend.join_pane(
-                        src_pane_id, f"{dst_sess}:0.0", direction="h",
+                        src_pane_id,
+                        f"{dst_sess}:0.0",
+                        direction="h",
                     )
                 except Exception as exc:
-                    warnings.append(
-                        f"join-pane {src_pane_id} -> {dst_sess} failed: {exc}"
-                    )
+                    warnings.append(f"join-pane {src_pane_id} -> {dst_sess} failed: {exc}")
             # Kill the default shell pane in sessions where we joined a
             # tagged pane in.  Identify CPSM panes by start_command rather
             # than title (titles get overwritten by running processes).
@@ -671,11 +666,13 @@ class SessionService:
                 except Exception:
                     continue
                 cpsm_panes = [
-                    p for p in fresh_panes
+                    p
+                    for p in fresh_panes
                     if _extract_cpsm_conn_id(getattr(p, "start_command", "") or "")
                 ]
                 non_cpsm = [
-                    p for p in fresh_panes
+                    p
+                    for p in fresh_panes
                     if not _extract_cpsm_conn_id(getattr(p, "start_command", "") or "")
                 ]
                 if cpsm_panes and non_cpsm:
@@ -735,7 +732,10 @@ class SessionService:
             # placement (Round 4). Order matches Round-2's renderer:
             # identifier → monitor_index_hint → positional.
             mon_geom = self._resolve_monitor_geometry(
-                monitor, mon_idx, ident_map, index_map,
+                monitor,
+                mon_idx,
+                ident_map,
+                index_map,
             )
             if mon_session in existing_sessions:
                 # Reconcile the existing session in place: dead panes get
@@ -784,14 +784,15 @@ class SessionService:
                         target_window = f"{mon_session}:{new_w.index}"
                     except Exception as exc:
                         warnings.append(
-                            f"Could not create window '{window_name}' on "
-                            f"{mon_session}: {exc}"
+                            f"Could not create window '{window_name}' on {mon_session}: {exc}"
                         )
                         continue
 
                 # Build pane structure for this viewport
                 pane_targets = self._build_panes_for_viewport(
-                    target_window, vp, warnings,
+                    target_window,
+                    vp,
+                    warnings,
                 )
 
                 # Populate each pane with its connection's launcher
@@ -805,19 +806,19 @@ class SessionService:
                             )
                             self._backend.respawn_pane(pane_target, f"bash {ph_tmp}")
                         except Exception as exc:
-                            warnings.append(
-                                f"Placeholder failed for pane {pane_target}: {exc}"
-                            )
+                            warnings.append(f"Placeholder failed for pane {pane_target}: {exc}")
                         continue
 
                     conn = self._config.find_connection(doc, pane_obj.connection_id)
                     if conn is None:
-                        member_results.append(LaunchResult(
-                            success=False,
-                            session_name=mon_session,
-                            connection_id=pane_obj.connection_id,
-                            errors=[f"Connection '{pane_obj.connection_id}' not found"],
-                        ))
+                        member_results.append(
+                            LaunchResult(
+                                success=False,
+                                session_name=mon_session,
+                                connection_id=pane_obj.connection_id,
+                                errors=[f"Connection '{pane_obj.connection_id}' not found"],
+                            )
+                        )
                         continue
                     try:
                         rendered = self._templates.render(
@@ -828,29 +829,32 @@ class SessionService:
                             ssh_keys=doc.ssh_keys,
                         )
                         if conn.launch_profile in _LOCAL_PROFILES:
-                            _check_local_profile_guard(
-                                rendered, conn.launch_profile, conn.id
-                            )
+                            _check_local_profile_guard(rendered, conn.launch_profile, conn.id)
                         tmpfile = self._write_launcher_tmpfile(rendered, conn.id)
                         self._backend.respawn_pane(pane_target, f"bash {tmpfile}")
                         with contextlib.suppress(Exception):
                             self._backend.set_pane_title(
-                                pane_target, f"cpsm:{conn.id}",
+                                pane_target,
+                                f"cpsm:{conn.id}",
                             )
-                        member_results.append(LaunchResult(
-                            success=True,
-                            session_name=mon_session,
-                            connection_id=conn.id,
-                        ))
+                        member_results.append(
+                            LaunchResult(
+                                success=True,
+                                session_name=mon_session,
+                                connection_id=conn.id,
+                            )
+                        )
                     except LocalProfileLeakError:
                         raise
                     except Exception as exc:
-                        member_results.append(LaunchResult(
-                            success=False,
-                            session_name=mon_session,
-                            connection_id=conn.id,
-                            errors=[str(exc)],
-                        ))
+                        member_results.append(
+                            LaunchResult(
+                                success=False,
+                                session_name=mon_session,
+                                connection_id=conn.id,
+                                errors=[str(exc)],
+                            )
+                        )
 
                 # Apply tmux layout. Round 3: prefer the structured
                 # split tree (mixed-orientation layouts via custom layout
@@ -908,7 +912,6 @@ class SessionService:
              lookups (and ``select-layout``) line up.
           5. Apply the tree-aware layout.
         """
-        import contextlib
 
         # Group existing panes by window_index → sorted by pane_index
         panes_by_win: dict[int, list[Any]] = {}
@@ -929,19 +932,16 @@ class SessionService:
                 if vp_idx == 0:
                     # Window 0 should always exist for an existing session;
                     # if it doesn't, something is very off — log and skip.
-                    warnings.append(
-                        f"Reconcile: window 0 missing on {mon_session}; skipping vp"
-                    )
+                    warnings.append(f"Reconcile: window 0 missing on {mon_session}; skipping vp")
                     continue
                 try:
                     new_w = self._backend.new_window(
-                        mon_session, name=vp.tmux_window_name or vp.id,
+                        mon_session,
+                        name=vp.tmux_window_name or vp.id,
                     )
                     target_window = f"{mon_session}:{new_w.index}"
                 except Exception as exc:
-                    warnings.append(
-                        f"Reconcile: could not add window for vp {vp.id}: {exc}"
-                    )
+                    warnings.append(f"Reconcile: could not add window for vp {vp.id}: {exc}")
                     continue
                 try:
                     existing_win = list(self._backend.list_panes(target_window))
@@ -976,19 +976,14 @@ class SessionService:
                         claimed_pane_ids.add(ex.id)
                         # Even an alive pane needs a respawn if it's dead;
                         # otherwise leave the running process alone.
-                        plan.append(
-                            (layout_pane, ex, bool(getattr(ex, "dead", False)))
-                        )
+                        plan.append((layout_pane, ex, bool(getattr(ex, "dead", False))))
                     else:
                         plan.append((layout_pane, None, True))
                 else:
                     # Null layout slot — claim any unused placeholder/untagged
                     # pane to avoid spawning a new one we'd just respawn anyway.
                     ph = next(
-                        (
-                            p for p in placeholder_pool
-                            if p.id not in claimed_pane_ids
-                        ),
+                        (p for p in placeholder_pool if p.id not in claimed_pane_ids),
                         None,
                     )
                     if ph is not None:
@@ -1000,42 +995,45 @@ class SessionService:
                         plan.append((layout_pane, None, True))
 
             # ── Phase 3: execute splits + respawns ──────────────────────
-            split_dir: Literal["h", "v"] = "h" if vp.tmux_layout in (
-                "even-h", "main-h"
-            ) else "v"
-            anchor_pane_target: str | None = (
-                existing_win[0].id if existing_win else None
-            )
+            split_dir: Literal["h", "v"] = "h" if vp.tmux_layout in ("even-h", "main-h") else "v"
+            anchor_pane_target: str | None = existing_win[0].id if existing_win else None
 
             resolved: list[tuple[Any, Any]] = []  # (layout_pane, pane_obj)
             for layout_pane, ex, needs_respawn in plan:
                 if ex is None:
                     if anchor_pane_target is None:
-                        warnings.append(
-                            f"Reconcile: no anchor pane to split on {target_window}"
-                        )
+                        warnings.append(f"Reconcile: no anchor pane to split on {target_window}")
                         break
                     try:
                         new_pane = self._backend.split_pane(
-                            anchor_pane_target, split_dir,
+                            anchor_pane_target,
+                            split_dir,
                         )
                     except Exception as exc:
-                        warnings.append(
-                            f"Reconcile: split-pane failed on {target_window}: {exc}"
-                        )
+                        warnings.append(f"Reconcile: split-pane failed on {target_window}: {exc}")
                         break
                     pane_obj = new_pane
                     anchor_pane_target = new_pane.id
                     self._respawn_layout_pane(
-                        doc, mon_session, vp, layout_pane, new_pane.id,
-                        member_results, warnings,
+                        doc,
+                        mon_session,
+                        vp,
+                        layout_pane,
+                        new_pane.id,
+                        member_results,
+                        warnings,
                     )
                 else:
                     pane_obj = ex
                     if needs_respawn:
                         self._respawn_layout_pane(
-                            doc, mon_session, vp, layout_pane, ex.id,
-                            member_results, warnings,
+                            doc,
+                            mon_session,
+                            vp,
+                            layout_pane,
+                            ex.id,
+                            member_results,
+                            warnings,
                         )
                 resolved.append((layout_pane, pane_obj))
 
@@ -1060,8 +1058,7 @@ class SessionService:
                 if current[i].id == want_id:
                     continue
                 j = next(
-                    (k for k in range(i + 1, len(current))
-                     if current[k].id == want_id),
+                    (k for k in range(i + 1, len(current)) if current[k].id == want_id),
                     None,
                 )
                 if j is None:
@@ -1071,15 +1068,11 @@ class SessionService:
                 try:
                     self._backend.swap_panes(current[i].id, current[j].id)
                 except Exception as exc:
-                    warnings.append(
-                        f"Reconcile: swap-panes failed on {target_window}: {exc}"
-                    )
+                    warnings.append(f"Reconcile: swap-panes failed on {target_window}: {exc}")
                     break
                 # pane_index has shifted for both swapped panes — refresh.
-                try:
+                with contextlib.suppress(Exception):
                     current = list(self._backend.list_panes(target_window))
-                except Exception:
-                    pass
                 current.sort(key=lambda x: x.pane_index)
 
             # ── Phase 6: apply tree-aware layout ────────────────────────
@@ -1102,22 +1095,23 @@ class SessionService:
             try:
                 placeholder = self._templates.render_placeholder()
                 ph_tmp = self._write_launcher_tmpfile(
-                    placeholder, f"placeholder-{vp.id}",
+                    placeholder,
+                    f"placeholder-{vp.id}",
                 )
                 self._backend.respawn_pane(pane_target, f"bash {ph_tmp}")
             except Exception as exc:
-                warnings.append(
-                    f"Placeholder failed for pane {pane_target}: {exc}"
-                )
+                warnings.append(f"Placeholder failed for pane {pane_target}: {exc}")
             return
         conn = self._config.find_connection(doc, layout_pane.connection_id)
         if conn is None:
-            member_results.append(LaunchResult(
-                success=False,
-                session_name=mon_session,
-                connection_id=layout_pane.connection_id,
-                errors=[f"Connection '{layout_pane.connection_id}' not found"],
-            ))
+            member_results.append(
+                LaunchResult(
+                    success=False,
+                    session_name=mon_session,
+                    connection_id=layout_pane.connection_id,
+                    errors=[f"Connection '{layout_pane.connection_id}' not found"],
+                )
+            )
             return
         try:
             rendered = self._templates.render(
@@ -1134,22 +1128,27 @@ class SessionService:
             # Tag the pane with its connection id so cross-session moves
             # (Round-late: live tmux resync) can locate it via title.
             import contextlib as _ctx
+
             with _ctx.suppress(Exception):
                 self._backend.set_pane_title(pane_target, f"cpsm:{conn.id}")
-            member_results.append(LaunchResult(
-                success=True,
-                session_name=mon_session,
-                connection_id=conn.id,
-            ))
+            member_results.append(
+                LaunchResult(
+                    success=True,
+                    session_name=mon_session,
+                    connection_id=conn.id,
+                )
+            )
         except LocalProfileLeakError:
             raise
         except Exception as exc:
-            member_results.append(LaunchResult(
-                success=False,
-                session_name=mon_session,
-                connection_id=conn.id,
-                errors=[str(exc)],
-            ))
+            member_results.append(
+                LaunchResult(
+                    success=False,
+                    session_name=mon_session,
+                    connection_id=conn.id,
+                    errors=[str(exc)],
+                )
+            )
 
     def _resolve_monitor_geometry(
         self,
@@ -1176,11 +1175,7 @@ class SessionService:
         if live is None:
             return None
         geom = getattr(live, "geometry", None)
-        if (
-            geom is None
-            or not isinstance(geom, tuple)
-            or len(geom) != 4
-        ):
+        if geom is None or not isinstance(geom, tuple) or len(geom) != 4:
             return None
         x, y, w, h = geom
         return (int(x), int(y), int(w), int(h))
@@ -1215,9 +1210,7 @@ class SessionService:
         targets: list[str] = [f"{target_window}.{existing[0].pane_index}"]
 
         # Pick split direction from layout preset
-        split_dir: Literal["h", "v"] = "h" if viewport.tmux_layout in (
-            "even-h", "main-h"
-        ) else "v"
+        split_dir: Literal["h", "v"] = "h" if viewport.tmux_layout in ("even-h", "main-h") else "v"
 
         for _ in range(n - 1):
             try:
@@ -1225,9 +1218,7 @@ class SessionService:
                 # Pane index → assemble target
                 targets.append(f"{target_window}.{new_pane.pane_index}")
             except Exception as exc:
-                warnings.append(
-                    f"split-pane failed on {target_window}: {exc}"
-                )
+                warnings.append(f"split-pane failed on {target_window}: {exc}")
                 break
         return targets
 
@@ -1387,12 +1378,12 @@ class SessionService:
                 killed += 1
                 logger.info(
                     "Reaped dead pane %s in session '%s' (state=%s)",
-                    pane_id, sess, getattr(state, "value", state),
+                    pane_id,
+                    sess,
+                    getattr(state, "value", state),
                 )
             except Exception as exc:
-                logger.debug(
-                    "Failed to reap dead pane %s in '%s': %s", pane_id, sess, exc
-                )
+                logger.debug("Failed to reap dead pane %s in '%s': %s", pane_id, sess, exc)
         return killed
 
     # ------------------------------------------------------------------
@@ -1482,9 +1473,7 @@ def _tmux_layout_body_from_tree(
         n = len(node.children)
         if n == 0:
             return f"{width}x{height},{x},{y}"
-        sizes_pct = (
-            [*node.ratios, 1.0 - sum(node.ratios)] if node.ratios else [1.0 / n] * n
-        )
+        sizes_pct = [*node.ratios, 1.0 - sum(node.ratios)] if node.ratios else [1.0 / n] * n
         dim_total = width if node.direction == "h" else height
         dims = [max(1, int(dim_total * pct)) for pct in sizes_pct[:-1]]
         dims.append(dim_total - sum(dims))

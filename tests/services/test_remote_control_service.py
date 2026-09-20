@@ -55,9 +55,7 @@ class TestParseClaudeVersion:
             ("v0.99.999", (0, 99, 999)),
         ],
     )
-    def test_extracts_triplet(
-        self, text: str, expected: tuple[int, int, int]
-    ) -> None:
+    def test_extracts_triplet(self, text: str, expected: tuple[int, int, int]) -> None:
         assert parse_claude_version(text) == expected
 
     @pytest.mark.parametrize("text", ["", "  ", "no version here", "v2"])
@@ -136,7 +134,9 @@ class TestPreflightHardFails:
             {
                 "uname -s": ("Linux\n", "", 0),
                 "claude --version": (
-                    "bash: claude: command not found\n", "", 0,
+                    "bash: claude: command not found\n",
+                    "",
+                    0,
                 ),
                 "printenv ANTHROPIC_API_KEY": ("", "", 0),
             }
@@ -150,7 +150,8 @@ class TestPreflightHardFails:
         probe = FakeProbe(
             {
                 "uname -s": (
-                    "", "ssh: connect to host nope.example port 22: refused",
+                    "",
+                    "ssh: connect to host nope.example port 22: refused",
                     255,
                 ),
             }
@@ -194,7 +195,10 @@ class TestBuildAuthSshArgv:
     def test_includes_forward_port(self) -> None:
         svc = RemoteControlService()
         argv = svc.build_auth_ssh_argv(
-            host="example.com", user="ubuntu", port=22, forward_port=8080,
+            host="example.com",
+            user="ubuntu",
+            port=22,
+            forward_port=8080,
         )
         # The `-o LocalForward=...` is what enables the callback tunnel.
         joined = " ".join(argv)
@@ -203,18 +207,22 @@ class TestBuildAuthSshArgv:
     def test_includes_user_at_host(self) -> None:
         svc = RemoteControlService()
         argv = svc.build_auth_ssh_argv(
-            host="example.com", user="ubuntu",
+            host="example.com",
+            user="ubuntu",
         )
         assert "ubuntu@example.com" in argv
 
     def test_non_default_port_is_passed(self) -> None:
         svc = RemoteControlService()
         argv = svc.build_auth_ssh_argv(
-            host="example.com", user="ubuntu", port=2222,
+            host="example.com",
+            user="ubuntu",
+            port=2222,
         )
         # Either OpenSSH (-p 2222) or plink (-P 2222) format.
         idx = next(
-            (i for i, a in enumerate(argv) if a in ("-p", "-P")), -1,
+            (i for i, a in enumerate(argv) if a in ("-p", "-P")),
+            -1,
         )
         assert idx >= 0
         assert argv[idx + 1] == "2222"
@@ -222,7 +230,9 @@ class TestBuildAuthSshArgv:
     def test_identity_file_passed_when_provided(self) -> None:
         svc = RemoteControlService()
         argv = svc.build_auth_ssh_argv(
-            host="h", user="u", key_path="/tmp/key",
+            host="h",
+            user="u",
+            key_path="/tmp/key",
         )
         assert "-i" in argv
         assert "/tmp/key" in argv
@@ -238,7 +248,9 @@ class TestBuildAuthSshArgv:
         """
         svc = RemoteControlService()
         argv = svc.build_auth_ssh_argv(
-            host="h", user="u", key_path="/tmp/key",
+            host="h",
+            user="u",
+            key_path="/tmp/key",
         )
         assert "IdentitiesOnly=yes" in argv, argv
         assert "IdentitiesOnly=no" not in argv, argv

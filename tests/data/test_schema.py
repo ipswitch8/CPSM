@@ -574,9 +574,7 @@ class TestClaudeRemoteConnection:
         ["web-server-1", "build.box", "DB_Migration", "x", "a.b-c_d", "A1"],
     )
     def test_remote_control_name_accepts_safe_chars(self, good_name: str) -> None:
-        conn = ClaudeRemoteConnection(
-            **_remote_conn(remote_control_name=good_name)
-        )
+        conn = ClaudeRemoteConnection(**_remote_conn(remote_control_name=good_name))
         assert conn.remote_control_name == good_name
 
     @pytest.mark.parametrize(
@@ -590,9 +588,7 @@ class TestClaudeRemoteConnection:
         them at schema parse-time so the failure is loud and early."""
         if bad_name == "":
             # Empty string is normalised to None (not an error)
-            conn = ClaudeRemoteConnection(
-                **_remote_conn(remote_control_name=bad_name)
-            )
+            conn = ClaudeRemoteConnection(**_remote_conn(remote_control_name=bad_name))
             assert conn.remote_control_name is None
             return
         with pytest.raises(ValidationError):
@@ -834,16 +830,12 @@ class TestFKIntegrity:
         parsed = CpsmDocument.model_validate(doc)
         assert parsed.connections[0].jump_host == "bastion"  # type: ignore[union-attr]
 
-    def test_jump_host_missing_loads_with_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_jump_host_missing_loads_with_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Round C (extended): a dangling jump_host loads with a warning
         rather than blocking the whole config."""
         conn = _remote_conn(jump_host="nonexistent")
         with caplog.at_level("WARNING"):
-            doc = CpsmDocument.model_validate(
-                _minimal_doc(ssh_keys=[_key()], connections=[conn])
-            )
+            doc = CpsmDocument.model_validate(_minimal_doc(ssh_keys=[_key()], connections=[conn]))
         assert any("jump_host" in r.message for r in caplog.records), (
             "Expected a WARNING about the dangling jump_host"
         )
@@ -905,9 +897,9 @@ class TestFKIntegrity:
         )
         with caplog.at_level("WARNING"):
             parsed = CpsmDocument.model_validate(doc)
-        assert any(
-            "member" in r.message and "nonexistent" in r.message for r in caplog.records
-        ), "Expected a WARNING naming the dangling group member"
+        assert any("member" in r.message and "nonexistent" in r.message for r in caplog.records), (
+            "Expected a WARNING naming the dangling group member"
+        )
         assert parsed.groups[0].members == ["nonexistent"]
 
     def test_group_default_layout_id_fk_valid(self) -> None:
@@ -1015,9 +1007,9 @@ class TestFKIntegrity:
         }
         with caplog.at_level("WARNING"):
             parsed = CpsmDocument.model_validate(_minimal_doc(screen_layouts=[layout]))
-        assert any(
-            "connection_id" in r.message and "ghost" in r.message for r in caplog.records
-        ), "Expected a WARNING naming the dangling pane connection_id"
+        assert any("connection_id" in r.message and "ghost" in r.message for r in caplog.records), (
+            "Expected a WARNING naming the dangling pane connection_id"
+        )
         pane = parsed.screen_layouts[0].monitors[0].viewports[0].panes[0]
         assert pane.connection_id == "ghost"
 
@@ -1030,9 +1022,7 @@ class TestFKIntegrity:
         )
         CpsmDocument.model_validate(doc)
 
-    def test_scene_group_missing_loads_with_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_scene_group_missing_loads_with_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Round C (extended): a dangling scene group ref loads with a
         warning; the missing group is skipped at scene launch."""
         doc = _minimal_doc(
@@ -1041,8 +1031,7 @@ class TestFKIntegrity:
         with caplog.at_level("WARNING"):
             parsed = CpsmDocument.model_validate(doc)
         assert any(
-            "scene" in r.message and "nonexistent-group" in r.message
-            for r in caplog.records
+            "scene" in r.message and "nonexistent-group" in r.message for r in caplog.records
         ), "Expected a WARNING naming the dangling scene group ref"
         assert parsed.scenes[0].groups == ["nonexistent-group"]
 
@@ -1303,13 +1292,16 @@ class TestFkIssuesBlankPrivatePath:
 
         doc = CpsmDocument()
         doc.ssh_keys = [
-            SshKey(id="blanked", name="Blanked", type="rsa",
-                   private_path="", public_path="")
+            SshKey(id="blanked", name="Blanked", type="rsa", private_path="", public_path="")
         ]
         doc.connections = [
             SshShellConnection(
-                id="c1", name="C1", launch_profile="ssh-shell",
-                host="h", user="u", identity_file_ref="blanked",
+                id="c1",
+                name="C1",
+                launch_profile="ssh-shell",
+                host="h",
+                user="u",
+                identity_file_ref="blanked",
             )
         ]
         issues = collect_fk_issues(doc)
@@ -1325,13 +1317,22 @@ class TestFkIssuesBlankPrivatePath:
 
         doc = CpsmDocument()
         doc.ssh_keys = [
-            SshKey(id="ok", name="OK", type="rsa",
-                   private_path="~/.ssh/utility", public_path="~/.ssh/utility.pub")
+            SshKey(
+                id="ok",
+                name="OK",
+                type="rsa",
+                private_path="~/.ssh/utility",
+                public_path="~/.ssh/utility.pub",
+            )
         ]
         doc.connections = [
             SshShellConnection(
-                id="c1", name="C1", launch_profile="ssh-shell",
-                host="h", user="u", identity_file_ref="ok",
+                id="c1",
+                name="C1",
+                launch_profile="ssh-shell",
+                host="h",
+                user="u",
+                identity_file_ref="ok",
             )
         ]
         assert collect_fk_issues(doc) == []

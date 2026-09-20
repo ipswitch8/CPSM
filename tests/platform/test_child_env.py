@@ -22,9 +22,9 @@ present in non-AppImage runs.
 from __future__ import annotations
 
 import os
-import subprocess
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -52,9 +52,7 @@ def frozen(monkeypatch: pytest.MonkeyPatch) -> None:
 class TestRestoresSavedOriginals:
     """PyInstaller saves the pre-launch value as <NAME>_ORIG."""
 
-    def test_restores_original_value(
-        self, frozen: None, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_restores_original_value(self, frozen: None, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("LD_LIBRARY_PATH", BUNDLE)
         monkeypatch.setenv("LD_LIBRARY_PATH_ORIG", "/opt/custom/lib")
 
@@ -94,9 +92,7 @@ class TestRestoresSavedOriginals:
 class TestDropsBundlePathsWithoutSavedOriginal:
     """No <NAME>_ORIG, but the value points into our own bundle."""
 
-    def test_drops_value_pointing_into_bundle(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_drops_value_pointing_into_bundle(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(sys, "frozen", True, raising=False)
         monkeypatch.setattr(sys, "_MEIPASS", BUNDLE, raising=False)
         monkeypatch.setenv("LD_LIBRARY_PATH", BUNDLE)
@@ -168,8 +164,11 @@ class TestProcessRunnerSanitises:
         monkeypatch.setenv("LD_LIBRARY_PATH_ORIG", "")
 
         result = ProcessRunner().run(
-            [sys.executable, "-c",
-             "import os; print(os.environ.get('LD_LIBRARY_PATH', '<unset>'))"],
+            [
+                sys.executable,
+                "-c",
+                "import os; print(os.environ.get('LD_LIBRARY_PATH', '<unset>'))",
+            ],
             timeout=60,
         )
 
@@ -185,8 +184,7 @@ class TestProcessRunnerSanitises:
         monkeypatch.setenv("LD_LIBRARY_PATH_ORIG", "")
 
         result = ProcessRunner().run(
-            [sys.executable, "-c",
-             "import os; print(os.environ.get('CPSM_MARKER', '<unset>'))"],
+            [sys.executable, "-c", "import os; print(os.environ.get('CPSM_MARKER', '<unset>'))"],
             env={"CPSM_MARKER": "explicit", "PATH": os.environ.get("PATH", "")},
             timeout=60,
         )
@@ -198,9 +196,7 @@ class TestTerminalLaunchersSanitise:
     """Every Popen site in terminal_launcher.py must pass a sanitised env."""
 
     def test_no_unsanitised_popen_remains(self) -> None:
-        source = Path(
-            __file__
-        ).resolve().parents[2] / "cpsm" / "platform" / "terminal_launcher.py"
+        source = Path(__file__).resolve().parents[2] / "cpsm" / "platform" / "terminal_launcher.py"
         text = source.read_text(encoding="utf-8")
 
         popen_count = text.count("subprocess.Popen(")
@@ -225,7 +221,7 @@ class TestEverySpawnSiteIsSanitised:
     """
 
     # Files whose direct subprocess calls are exempt, with the reason.
-    _EXEMPT = {
+    _EXEMPT: ClassVar[set[str]] = {
         # ProcessRunner IS the sanitiser for everything that goes through it
         # (tmux, ssh via SshBinary, launcher scripts). It applies child_env()
         # itself when the caller passes env=None.
@@ -245,9 +241,7 @@ class TestEverySpawnSiteIsSanitised:
             text = path.read_text(encoding="utf-8")
             # Each spawn call, with the following ~12 lines of its argument
             # list, must mention an env= that resolves to child_env.
-            for match in re.finditer(
-                r"(?:subprocess|_subprocess)\.(?:run|Popen)\(", text
-            ):
+            for match in re.finditer(r"(?:subprocess|_subprocess)\.(?:run|Popen)\(", text):
                 tail = text[match.start() : match.start() + 600]
                 # Stop at the closing of this call, approximated by the next
                 # line that is a dedented statement; 600 chars is generous.
@@ -262,9 +256,9 @@ class TestEverySpawnSiteIsSanitised:
             "spawn sites without a sanitised env: "
             + ", ".join(offenders)
             + " — each hands the child CPSM's PyInstaller library paths, which "
-              "can make a system binary fail to start (konsole does). Pass "
-              "env=child_env(), route through ProcessRunner, or add an "
-              "explicit exemption with a reason."
+            "can make a system binary fail to start (konsole does). Pass "
+            "env=child_env(), route through ProcessRunner, or add an "
+            "explicit exemption with a reason."
         )
 
 

@@ -213,9 +213,7 @@ class ConnectionEditorDialog(QDialog):
         # it is never used *alongside* ssh_keys, only instead of it, so
         # there is exactly one answer for "what ids does the combo show"
         # at any given time.
-        key_ids = (
-            [k.id for k in self._ssh_keys] if self._ssh_keys else list(available_key_ids)
-        )
+        key_ids = [k.id for k in self._ssh_keys] if self._ssh_keys else list(available_key_ids)
         self._form = ConnectionForm(
             self,
             available_key_ids=key_ids,
@@ -307,9 +305,7 @@ class ConnectionEditorDialog(QDialog):
         self._edit_id.editingFinished.connect(self._validate_id)
         self._form.validation_changed.connect(self._on_form_validation_changed)
         self._form.profile_changed.connect(self._on_profile_changed)
-        self._form.remote_control_auth_requested.connect(
-            self._on_remote_control_auth_requested
-        )
+        self._form.remote_control_auth_requested.connect(self._on_remote_control_auth_requested)
         self._form.new_key_requested.connect(self._on_new_key_requested)
 
     # ------------------------------------------------------------------
@@ -442,6 +438,7 @@ class ConnectionEditorDialog(QDialog):
         port = int(data.get("port") or 22)
         if not host or not user:
             from PySide6.QtWidgets import QMessageBox
+
             QMessageBox.warning(
                 self,
                 "Set up Remote Control",
@@ -465,8 +462,12 @@ class ConnectionEditorDialog(QDialog):
                 key_path = ""
 
         from cpsm.ui.dialogs.remote_control_auth import RemoteControlAuthDialog
+
         dlg = RemoteControlAuthDialog(
-            host=host, user=user, port=port, key_path=key_path,
+            host=host,
+            user=user,
+            port=port,
+            key_path=key_path,
             parent=self,
         )
         dlg.exec()
@@ -707,9 +708,7 @@ class ConnectionEditorDialog(QDialog):
                 port=port,
                 candidates=candidates,
             )
-            task.signals.finished.connect(
-                _handle_result, Qt.ConnectionType.QueuedConnection
-            )
+            task.signals.finished.connect(_handle_result, Qt.ConnectionType.QueuedConnection)
             QThreadPool.globalInstance().start(task)
         except Exception as exc:
             self._lbl_test_result.setStyleSheet("color: red;")
@@ -717,7 +716,7 @@ class ConnectionEditorDialog(QDialog):
 
     @Slot(object)
     def _on_key_probe_result(
-        self, candidate: "KeyCandidate | None", host: str, user: str, port: int
+        self, candidate: KeyCandidate | None, host: str, user: str, port: int
     ) -> None:
         """Handle the outcome of a key-discovery probe.
 
@@ -735,16 +734,14 @@ class ConnectionEditorDialog(QDialog):
         if candidate is None:
             self._lbl_test_result.setStyleSheet("color: red;")
             self._lbl_test_result.setText(
-                "✗  No working SSH key found for this host among the "
-                "candidates CPSM could discover"
+                "✗  No working SSH key found for this host among the candidates CPSM could discover"
             )
             return
 
         if not self._show_pin_confirm_dialog(candidate):
             self._lbl_test_result.setStyleSheet("color: orange;")
             self._lbl_test_result.setText(
-                f"⚠  Found a working key ({candidate.private_path}) but "
-                "declined to pin it"
+                f"⚠  Found a working key ({candidate.private_path}) but declined to pin it"
             )
             return
 
@@ -754,7 +751,7 @@ class ConnectionEditorDialog(QDialog):
             f"✓  Connection successful — pinned discovered key '{key_id}'"
         )
 
-    def _show_pin_confirm_dialog(self, candidate: "KeyCandidate") -> bool:
+    def _show_pin_confirm_dialog(self, candidate: KeyCandidate) -> bool:
         """Ask the user whether to pin *candidate* to this connection.
 
         Injectable via ``confirm_pin_fn`` (constructor) for tests. The real
@@ -765,7 +762,7 @@ class ConnectionEditorDialog(QDialog):
         asked to trust an opaque decision.
         """
         if self._confirm_pin_fn is not None:
-            return self._confirm_pin_fn(self, candidate)
+            return bool(self._confirm_pin_fn(self, candidate))
 
         box = QMessageBox(self)
         box.setObjectName("dlg_confirm_pin_discovered_key")
@@ -788,13 +785,11 @@ class ConnectionEditorDialog(QDialog):
             f"{source_desc}:\n\n{candidate.private_path}{comment_line}\n\n"
             "Pin this key to the connection?"
         )
-        box.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         box.setDefaultButton(QMessageBox.StandardButton.No)
         return box.exec() == int(QMessageBox.StandardButton.Yes)
 
-    def _pin_discovered_key(self, candidate: "KeyCandidate") -> str:
+    def _pin_discovered_key(self, candidate: KeyCandidate) -> str:
         """Ensure an ``ssh_keys`` entry exists for *candidate* and pin it.
 
         Reuses an existing entry (matched by resolved private_path) instead
@@ -814,9 +809,7 @@ class ConnectionEditorDialog(QDialog):
             key_id = str(existing.id)
         else:
             key_id = self._suggest_key_id(candidate)
-            public_path = (
-                str(candidate.public_path) if candidate.public_path else target + ".pub"
-            )
+            public_path = str(candidate.public_path) if candidate.public_path else target + ".pub"
             new_key = SshKey(
                 id=key_id,
                 name=candidate.comment or candidate.private_path.name,
@@ -832,7 +825,7 @@ class ConnectionEditorDialog(QDialog):
         return key_id
 
     @staticmethod
-    def _infer_key_type(candidate: "KeyCandidate") -> str:
+    def _infer_key_type(candidate: KeyCandidate) -> str:
         """Best-effort algorithm for a discovered key: ed25519 | rsa | ecdsa.
 
         This used to be hardcoded to "ed25519" for every discovered key,
@@ -852,9 +845,7 @@ class ConnectionEditorDialog(QDialog):
         pub = candidate.public_path
         if pub is not None:
             try:
-                first_line = pub.read_text(encoding="utf-8", errors="replace").split(
-                    "\n", 1
-                )[0]
+                first_line = pub.read_text(encoding="utf-8", errors="replace").split("\n", 1)[0]
             except OSError:
                 first_line = ""
             algo = first_line.split(None, 1)[0].lower() if first_line.strip() else ""
@@ -872,7 +863,7 @@ class ConnectionEditorDialog(QDialog):
             return "rsa"
         return "ed25519"
 
-    def _suggest_key_id(self, candidate: "KeyCandidate") -> str:
+    def _suggest_key_id(self, candidate: KeyCandidate) -> str:
         """Derive a unique id slug (``_ID_SLUG_RE``) for a discovered key."""
         base = candidate.comment or candidate.private_path.stem
         slug = re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-")[:63]

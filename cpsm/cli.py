@@ -36,7 +36,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from types import SimpleNamespace
 
-from cpsm import __version__, version_string
+from cpsm import version_string
 
 __all__ = ["dispatch"]
 

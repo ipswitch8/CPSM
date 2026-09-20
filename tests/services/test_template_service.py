@@ -40,10 +40,10 @@ import pytest
 
 from cpsm.services.template_service import (
     IdentityKeyNotFoundError,
-    _ssh_option_values,
     TemplateMustacheError,
     TemplateNotFoundError,
     TemplateService,
+    _ssh_option_values,
 )
 
 # ---------------------------------------------------------------------------
@@ -398,9 +398,7 @@ class TestRemoteControl:
 
     @staticmethod
     def _co_line(rendered: str) -> str:
-        lines = [
-            l for l in rendered.splitlines() if l.startswith("_CLAUDE_OPTIONS=")
-        ]
+        lines = [line for line in rendered.splitlines() if line.startswith("_CLAUDE_OPTIONS=")]
         assert lines, f"no _CLAUDE_OPTIONS line in:\n{rendered}"
         return lines[0]
 
@@ -813,9 +811,7 @@ class TestMustacheRenderer:
         """
         svc = TemplateService()
         first = types.SimpleNamespace(id="not-me", bash="wrong template")
-        target = types.SimpleNamespace(
-            id="the-one", bash="#!/bin/bash\necho {{project_folder}}\n"
-        )
+        target = types.SimpleNamespace(id="the-one", bash="#!/bin/bash\necho {{project_folder}}\n")
         conn = types.SimpleNamespace(
             id="c",
             launch_profile="custom",
@@ -898,7 +894,7 @@ class TestMustacheRenderer:
             notes=None,
             host="h",
             user="u",
-            identity_file_ref="unknown-key-id",     # not in ssh_keys below
+            identity_file_ref="unknown-key-id",  # not in ssh_keys below
             identity_file="/home/user/.ssh/legacy_key",  # backward-compat field
             claude_options=None,
             port=22,
@@ -953,9 +949,7 @@ class TestDanglingIdentityRef:
 
     def test_dangling_ref_with_no_fallback_raises(self) -> None:
         svc = TemplateService()
-        tpl = types.SimpleNamespace(
-            id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n"
-        )
+        tpl = types.SimpleNamespace(id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n")
         conn = self._conn(identity_file=None)
         ssh_keys = [
             types.SimpleNamespace(id="id-ed25519", private_path="/home/user/.ssh/id_ed25519"),
@@ -988,9 +982,7 @@ class TestDanglingIdentityRef:
     def test_empty_ssh_keys_list_raises(self) -> None:
         """Every key deleted: ssh_keys == [] is a real schema-default state."""
         svc = TemplateService()
-        tpl = types.SimpleNamespace(
-            id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n"
-        )
+        tpl = types.SimpleNamespace(id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n")
         conn = self._conn(identity_file=None)
         with pytest.raises(IdentityKeyNotFoundError) as exc:
             svc.render("custom", conn, templates=[tpl], ssh_keys=[])
@@ -999,9 +991,7 @@ class TestDanglingIdentityRef:
     def test_none_ssh_keys_raises(self) -> None:
         """Caller passed no key list at all, but the connection names a key."""
         svc = TemplateService()
-        tpl = types.SimpleNamespace(
-            id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n"
-        )
+        tpl = types.SimpleNamespace(id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n")
         conn = self._conn(identity_file=None)
         with pytest.raises(IdentityKeyNotFoundError):
             svc.render("custom", conn, templates=[tpl], ssh_keys=None)
@@ -1009,9 +999,7 @@ class TestDanglingIdentityRef:
     def test_matching_key_with_empty_private_path_raises(self) -> None:
         """The id resolves, but the entry carries no path -- still no -i."""
         svc = TemplateService()
-        tpl = types.SimpleNamespace(
-            id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n"
-        )
+        tpl = types.SimpleNamespace(id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n")
         conn = self._conn(identity_file_ref="blanked", identity_file=None)
         ssh_keys = [types.SimpleNamespace(id="blanked", private_path="")]
         with pytest.raises(IdentityKeyNotFoundError):
@@ -1024,9 +1012,7 @@ class TestDanglingIdentityRef:
         templates use, since with no key there is legitimately no value.
         """
         svc = TemplateService()
-        tpl = types.SimpleNamespace(
-            id="t", bash="#!/bin/bash\necho identity={{identity_file|}}\n"
-        )
+        tpl = types.SimpleNamespace(id="t", bash="#!/bin/bash\necho identity={{identity_file|}}\n")
         conn = self._conn(identity_file_ref=None, identity_file=None)
         rendered = svc.render("custom", conn, templates=[tpl], ssh_keys=[])
         assert "identity=" in rendered
@@ -1034,9 +1020,7 @@ class TestDanglingIdentityRef:
     def test_resolvable_ref_still_renders(self) -> None:
         """Guard against the check firing on healthy configs."""
         svc = TemplateService()
-        tpl = types.SimpleNamespace(
-            id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n"
-        )
+        tpl = types.SimpleNamespace(id="t", bash="#!/bin/bash\necho identity={{identity_file}}\n")
         conn = self._conn(identity_file_ref="utility", identity_file=None)
         ssh_keys = [types.SimpleNamespace(id="utility", private_path="/home/user/.ssh/utility")]
         rendered = svc.render("custom", conn, templates=[tpl], ssh_keys=ssh_keys)
@@ -1350,9 +1334,7 @@ def _capture_ssh_argv(script: str) -> list[list[str]]:
             fh.write("exit 0\n")
         os.chmod(stub, 0o755)
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".sh", delete=False, encoding="utf-8"
-    ) as fh:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False, encoding="utf-8") as fh:
         # claude/sudo stay function stubs: they are only ever called normally,
         # never via exec.
         fh.write("claude() { return 0; }\nsudo() { return 0; }\n")
@@ -1404,9 +1386,7 @@ class TestIdentitiesOnlyPinning:
 
     def test_ssh_shell_pins_every_invocation(self) -> None:
         svc = TemplateService()
-        rendered = svc.render(
-            "ssh-shell", _make_ssh_shell_conn(), settings=_make_settings()
-        )
+        rendered = svc.render("ssh-shell", _make_ssh_shell_conn(), settings=_make_settings())
         calls = _capture_ssh_argv(rendered)
         # Exercise guard: an empty list makes every assertion below vacuous.
         assert calls, "no ssh invocation was recorded — the stub never fired"
@@ -1419,9 +1399,7 @@ class TestIdentitiesOnlyPinning:
 
     def test_claude_remote_pins_every_invocation(self) -> None:
         svc = TemplateService()
-        rendered = svc.render(
-            "claude-remote", _make_remote_conn(), settings=_make_settings()
-        )
+        rendered = svc.render("claude-remote", _make_remote_conn(), settings=_make_settings())
         calls = _capture_ssh_argv(rendered)
         assert calls, "no ssh/scp invocation was recorded — the stub never fired"
         # This template has several ssh calls plus an scp. A fix applied to
@@ -1469,17 +1447,15 @@ class TestIdentitiesOnlyPinning:
             "-o identitiesonly=no",
             "-o IDENTITIESONLY=no",
             "-o IdentitiesOnly=no",
-            "-o  IdentitiesOnly=no",          # multiple spaces
-            "-o\tIdentitiesOnly=no",          # tab
-            "-o IdentitiesOnly no",           # space-separated key and value
-            "-oIdentitiesOnly=no",            # CONCATENATED -- ssh accepts this
-            "-oidentitiesonly=no",            # concatenated + lowercase
-            "-o ConnectTimeout=10 -oIdentitiesOnly=no",   # concatenated, not first
+            "-o  IdentitiesOnly=no",  # multiple spaces
+            "-o\tIdentitiesOnly=no",  # tab
+            "-o IdentitiesOnly no",  # space-separated key and value
+            "-oIdentitiesOnly=no",  # CONCATENATED -- ssh accepts this
+            "-oidentitiesonly=no",  # concatenated + lowercase
+            "-o ConnectTimeout=10 -oIdentitiesOnly=no",  # concatenated, not first
         ],
     )
-    def test_user_setting_detected_in_every_form_ssh_accepts(
-        self, raw_options: str
-    ) -> None:
+    def test_user_setting_detected_in_every_form_ssh_accepts(self, raw_options: str) -> None:
         """Detection must cover every spelling ssh itself accepts.
 
         default_ssh_options is free text from a QLineEdit, so it is not
@@ -1505,9 +1481,7 @@ class TestIdentitiesOnlyPinning:
             "-o ConnectTimeout=10",
         ],
     )
-    def test_lookalike_options_do_not_suppress_the_pin(
-        self, raw_options: str
-    ) -> None:
+    def test_lookalike_options_do_not_suppress_the_pin(self, raw_options: str) -> None:
         """Only a real IdentitiesOnly keyword counts as the user's preference.
 
         A bare substring search suppressed the pin for the ProxyCommand case,
@@ -1582,9 +1556,7 @@ class TestSshOptionValues:
             ("", False),
         ],
     )
-    def test_detects_the_keyword_via_shared_rule(
-        self, raw: str, expected: bool
-    ) -> None:
+    def test_detects_the_keyword_via_shared_rule(self, raw: str, expected: bool) -> None:
         """Composed with SshBinary's has_ssh_option — one keyword rule, not two."""
         from cpsm.platform.ssh_binary import has_ssh_option
 

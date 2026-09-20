@@ -233,10 +233,10 @@ class TestSshKeyManagerDeleteInUse:
         doc = _make_doc(_make_key(key_id))
         doc.connections = [
             SshShellConnection(
-                id="c%d" % i,
-                name="Conn %d" % i,
+                id=f"c{i}",
+                name=f"Conn {i}",
                 launch_profile="ssh-shell",
-                host="10.0.0.%d" % (i + 1),
+                host=f"10.0.0.{i + 1}",
                 user="root",
                 identity_file_ref=key_id,
             )
@@ -282,9 +282,7 @@ class TestSshKeyManagerDeleteInUse:
             def exec(self):
                 return QMessageBox.StandardButton.No
 
-        monkeypatch.setattr(
-            "cpsm.ui.dialogs.ssh_key_manager.QMessageBox", _FakeBox
-        )
+        monkeypatch.setattr("cpsm.ui.dialogs.ssh_key_manager.QMessageBox", _FakeBox)
         dlg._on_delete(doc.ssh_keys[0])
 
         # Cancelled -> key survives.
@@ -314,9 +312,7 @@ class TestSshKeyManagerDeleteInUse:
             def exec(self):
                 return QMessageBox.StandardButton.Yes
 
-        monkeypatch.setattr(
-            "cpsm.ui.dialogs.ssh_key_manager.QMessageBox", _YesBox
-        )
+        monkeypatch.setattr("cpsm.ui.dialogs.ssh_key_manager.QMessageBox", _YesBox)
         dlg._on_delete(doc.ssh_keys[0])
         assert doc.ssh_keys == []
 
