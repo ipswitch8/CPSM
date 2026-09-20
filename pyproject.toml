@@ -40,7 +40,7 @@ dev = [
   "pytest-qt>=4.4",
   "pytest-mock>=3.12",
   "pytest-cov>=5.0",
-  "ruff>=0.5",
+  "ruff>=0.16.8,<0.17",
   "mypy>=1.10",
   "pyinstaller>=6.5",
   # tests/ui_visual/conftest.py imports PIL to diff screenshots. It was

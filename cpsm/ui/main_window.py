@@ -4243,7 +4243,7 @@ class MainWindow(QMainWindow):
         *,
         auth_method: str,
         key_deployed: bool | None = None,
-        identity_file_ref: str | None | object = ...,
+        identity_file_ref: str | object | None = ...,
     ) -> None:
         """Update the connection in the document with the new auth fields,
         then save. Uses model_copy because Pydantic v2 models with
