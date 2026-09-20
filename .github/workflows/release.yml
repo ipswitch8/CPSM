@@ -56,6 +56,10 @@ jobs:
         # which leaks ~413 MB/day. See docs/MEMORY-LEAK-INVESTIGATION.md.
         env:
           CPSM_VERSION: ${{ steps.version.outputs.version }}
+          # appimagetool is itself an AppImage, and GitHub runners have no
+          # FUSE. Without this it dies with "dlopen(): error loading
+          # libfuse.so.2" before producing anything.
+          APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
           bash scripts/build_appimage_plain.sh
 

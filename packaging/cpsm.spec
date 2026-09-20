@@ -119,6 +119,26 @@ a = Analysis(
     optimize=1,
 )
 
+# ---------------------------------------------------------------------------
+# Strip __pycache__ out of the bundled data.
+#
+# The `datas` entries above copy whole resource directories, which sweeps in
+# any __pycache__ left behind by a local test run. Those .pyc files embed the
+# absolute source path they were compiled from — so a release artefact built
+# here shipped `/home/<developer>/<project>/cpsm/resources/...` inside two
+# compiled files. Harmless in itself, but it is precisely the kind of
+# build-machine detail tests/lint/test_no_real_infrastructure.py keeps out of
+# the source tree, and that guard cannot see inside a compiled artefact.
+#
+# Filtering here rather than cleaning before the build, so it holds no matter
+# what state the working tree is in when someone packages a release.
+a.datas = [
+    (dest, src, kind)
+    for (dest, src, kind) in a.datas
+    if "__pycache__" not in dest.replace("\\", "/").split("/")
+    and not dest.endswith((".pyc", ".pyo"))
+]
+
 pyz = PYZ(a.pure)  # noqa: F821
 
 # ---------------------------------------------------------------------------

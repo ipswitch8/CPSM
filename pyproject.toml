@@ -43,6 +43,10 @@ dev = [
   "ruff>=0.5",
   "mypy>=1.10",
   "pyinstaller>=6.5",
+  # tests/ui_visual/conftest.py imports PIL to diff screenshots. It was
+  # never declared, so the suite collected only on machines that happened
+  # to have it — CI could not run the visual tests at all.
+  "pillow>=10.0",
 ]
 linux = [
   "python-xlib>=0.33; sys_platform == 'linux'",
