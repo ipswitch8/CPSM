@@ -287,3 +287,58 @@ class TestVersionSourcesAgree:
             f"pyproject.toml says {declared!r} but cpsm.__version__ is "
             f"{cpsm.__version__!r} -- bump both, or the artifact misreports itself"
         )
+
+    # ------------------------------------------------------------------
+    # The release tag is a THIRD copy of the version, and the one nobody
+    # was checking.
+    #
+    # v0.2.1 shipped an AppImage named CPSM-0.2.1-x86_64.AppImage that
+    # reported "cpsm 0.2.0" when run, because the git tag only feeds the
+    # output *filename* — the version inside the binary comes from
+    # cpsm.__version__, which had not been bumped. Download 0.2.1, run it,
+    # see 0.2.0.
+    #
+    # This runs when CPSM_RELEASE_TAG is set. release.yml sets it from the
+    # tag and runs this test BEFORE building, so a mismatched tag fails the
+    # release in seconds instead of publishing a mislabelled binary.
+    # ------------------------------------------------------------------
+
+    def test_release_tag_matches_package_version(self) -> None:
+        """A release tag must name the version the package actually reports."""
+        import os
+
+        tag = os.environ.get("CPSM_RELEASE_TAG")
+        if not tag:
+            pytest.skip("not a release build (CPSM_RELEASE_TAG unset)")
+
+        import cpsm
+
+        tag_version = tag[1:] if tag.startswith("v") else tag
+        assert tag_version == cpsm.__version__, (
+            f"release tag {tag!r} implies version {tag_version!r}, but "
+            f"cpsm.__version__ is {cpsm.__version__!r}. The artifact would be "
+            f"named for one version and report another. Bump pyproject.toml "
+            f"and cpsm/__init__.py, or retag."
+        )
+
+    def test_release_workflow_actually_runs_the_tag_check(self) -> None:
+        """The tag check must be wired into release.yml, not merely exist.
+
+        A guard that skips unless an env var is set is worthless if nothing
+        ever sets it. This repo has already shipped one control that passed
+        by never executing, so the wiring gets its own test.
+        """
+        from pathlib import Path
+
+        workflow = (
+            Path(__file__).resolve().parent.parent / ".github" / "workflows" / "release.yml"
+        ).read_text(encoding="utf-8")
+
+        assert "CPSM_RELEASE_TAG" in workflow, (
+            "release.yml never sets CPSM_RELEASE_TAG, so "
+            "test_release_tag_matches_package_version always skips and the "
+            "tag/version agreement is unchecked."
+        )
+        assert "test_release_tag_matches_package_version" in workflow, (
+            "release.yml sets CPSM_RELEASE_TAG but never invokes the test that reads it."
+        )

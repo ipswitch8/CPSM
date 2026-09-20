@@ -6,7 +6,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __all__ = ["__version__", "build_id", "version_string"]
 
 

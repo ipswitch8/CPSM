@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cpsm"
-version = "0.2.0"
+version = "0.2.1"
 description = "Cross-Platform Session Manager — desktop GUI for managing tmux/SSH sessions and Claude Code projects"
 readme = "README.md"
 license = { file = "LICENSE" }

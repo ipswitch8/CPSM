@@ -43,6 +43,16 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Check the tag matches the package version
+        # Before anything is built. The tag only drives the output filename;
+        # the version inside the binary comes from cpsm.__version__. When
+        # those disagree you get an artifact named for one version that
+        # reports another — which is exactly what v0.2.1 shipped.
+        env:
+          CPSM_RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          pytest tests/test_packaging.py::TestVersionSourcesAgree::test_release_tag_matches_package_version -q --no-cov
+
       - name: Build PyInstaller one-folder dist
         run: |
           pyinstaller --noconfirm packaging/cpsm.spec
@@ -50,6 +60,17 @@ jobs:
       - name: Smoke-test Linux binary
         run: |
           ./dist/cpsm/cpsm --version
+
+      - name: Verify the packaged binary reports the right version
+        # tests/e2e/test_packaged_artifact.py asserts dist/cpsm/cpsm reports
+        # cpsm.__version__. It skips when dist/ is absent, so it never ran in
+        # the normal CI job and was not invoked here either -- meaning the
+        # one check that compares the BUILT artifact against the declared
+        # version was dormant. Runs here, where dist/ exists.
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          pytest tests/e2e/test_packaged_artifact.py -q --no-cov
 
       - name: Check the bundle carries no build-machine paths
         # Must run AFTER the PyInstaller build. The test skips when
