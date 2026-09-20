@@ -73,10 +73,15 @@ jobs:
         run: |
           bash scripts/build_appimage_plain.sh
 
-      - name: Upload AppImage as release asset
+      - name: Upload AppImage and installer as release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: CPSM-${{ steps.version.outputs.version }}-x86_64.AppImage
+          # install.sh belongs here too: the README tells people to download
+          # both, and an automated release that ships only the AppImage
+          # leaves them without the installer the Quick Start references.
+          files: |
+            CPSM-${{ steps.version.outputs.version }}-x86_64.AppImage
+            install.sh
 
   # --------------------------------------------------------------------------
   # Windows: PyInstaller → WiX MSI

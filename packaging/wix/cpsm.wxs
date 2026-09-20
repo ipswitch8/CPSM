@@ -68,8 +68,33 @@
       <Component Id="MainExecutable" Guid="*">
         <File
           Id="CpsmExe"
-          Source="$(var.SourceDir)\cpsm.exe"
+          Source="$(var.SourceDir)\cpsm.exe" />
+
+        <!-- ICE38: a component installing into the user profile must take its
+             KeyPath from HKCU, not from a file, so Windows can ref-count the
+             install per user. With a File KeyPath, light.exe refuses the
+             package outright. -->
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\$(var.Manufacturer)\$(var.ProductName)"
+          Name="mainexe"
+          Type="integer"
+          Value="1"
           KeyPath="yes" />
+
+        <!-- ICE64: both of these directories live under the user profile and
+             were never scheduled for removal, so an uninstall left empty
+             directories behind. RemoveFolder deletes a directory only when it
+             is already empty, so listing the shared Programs folder is safe —
+             it goes only if nothing else is using it. -->
+        <RemoveFolder
+          Id="CleanUpInstallFolder"
+          Directory="INSTALLFOLDER"
+          On="uninstall" />
+        <RemoveFolder
+          Id="CleanUpProgramsFolder"
+          Directory="PROGRAMSFOLDER"
+          On="uninstall" />
         <!-- Add to PATH for the current user -->
         <Environment
           Id="PATH"
