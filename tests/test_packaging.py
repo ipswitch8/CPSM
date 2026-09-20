@@ -160,6 +160,40 @@ class TestCpsmWxs:
         text = self.WXS_PATH.read_text(encoding="utf-8")
         assert "sign" in text.lower(), "wxs must contain a code-signing comment or placeholder"
 
+    # The set of dialog sets WixUIExtension actually provides. A UIRef naming
+    # anything else links fine locally (candle does not resolve it) and then
+    # fails only at light.exe time, on Windows, inside CI — which is exactly
+    # how `WixUI_ProgressOnly` reached the repo and broke the first release
+    # run with "LGHT0094: Unresolved reference to symbol".
+    _WIXUI_DIALOG_SETS = frozenset(
+        {
+            "WixUI_Minimal",
+            "WixUI_InstallDir",
+            "WixUI_FeatureTree",
+            "WixUI_Mondo",
+            "WixUI_Advanced",
+        }
+    )
+
+    def test_wxs_uiref_names_a_real_dialog_set(self) -> None:
+        """Any UIRef must name a dialog set WixUIExtension actually ships.
+
+        Having no UIRef at all is fine — the MSI falls back to its built-in
+        basic UI — so this only constrains the case where one is present.
+        """
+        root = self._parse_wxs().getroot()
+        bad = [
+            el.get("Id")
+            for el in root.iter()
+            if el.tag.endswith("UIRef") and el.get("Id") not in self._WIXUI_DIALOG_SETS
+        ]
+        assert not bad, (
+            f"cpsm.wxs references UI dialog set(s) that WixUIExtension does not "
+            f"provide: {bad}. light.exe will fail with LGHT0094 on the Windows "
+            f"release job. Valid sets: {sorted(self._WIXUI_DIALOG_SETS)}, or omit "
+            "the UIRef entirely for the built-in basic UI."
+        )
+
 
 # ---------------------------------------------------------------------------
 # AppImageBuilder.yml — appimagetool config

@@ -105,8 +105,19 @@
       </Component>
     </DirectoryRef>
 
-    <!-- == UI == -->
-    <UIRef Id="WixUI_ProgressOnly" />
+    <!-- == UI ==
+         Deliberately no <UIRef>. `WixUI_ProgressOnly` was referenced
+         here, but no such dialog set exists in WixUIExtension, so
+         light.exe failed the Windows release job with:
+             LGHT0094: Unresolved reference to symbol
+             'WixUI:WixUI_ProgressOnly'
+         The real sets are WixUI_Minimal / _InstallDir / _FeatureTree /
+         _Mondo / _Advanced. Omitting the reference leaves the MSI with
+         its built-in basic UI, which is what an unattended CI-built
+         installer wants: a progress dialog on a normal install, and
+         fully silent under the quiet flag. Switching to WixUI_Minimal
+         instead would additionally need a WixUILicenseRtf variable or
+         it fails on a missing License.rtf. -->
 
     <!-- == Code-signing placeholder ==
          In CI, signtool.exe is invoked after light.exe; see release.yml.

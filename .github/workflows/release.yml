@@ -51,6 +51,16 @@ jobs:
         run: |
           ./dist/cpsm/cpsm --version
 
+      - name: Check the bundle carries no build-machine paths
+        # Must run AFTER the PyInstaller build. The test skips when
+        # dist/cpsm/ is absent, so putting it in the normal CI workflow
+        # (which never builds a bundle) would pass without checking
+        # anything at all -- which is exactly what it did before.
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          pytest tests/packaging/test_bundle_has_no_build_paths.py -q --no-cov
+
       - name: Build AppImage
         # NOT appimage-builder: its AppRun LD_PRELOADs libapprun_hooks.so,
         # which leaks ~413 MB/day. See docs/MEMORY-LEAK-INVESTIGATION.md.
