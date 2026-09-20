@@ -18,13 +18,16 @@ def _source_root() -> Path:
 def _read_stamp() -> str:
     """The commit recorded at package time, or "" if there is no stamp."""
     try:
-        # Imported dynamically: cpsm/_build_stamp.py is generated at package
-        # time and is gitignored, so it does not exist in a source checkout.
-        # A static import is unresolvable there and mypy rightly objects.
-        import importlib
+        # Must stay a STATIC import. cpsm/_build_stamp.py is generated at
+        # package time and gitignored, so switching this to
+        # importlib.import_module made mypy happy in a clean checkout but
+        # made PyInstaller's static analysis blind to the module -- it
+        # stopped being bundled and every packaged build reported
+        # "build unknown". mypy is handled by an override in pyproject.toml
+        # instead.
+        from cpsm import _build_stamp  # type: ignore[attr-defined]
 
-        stamp = importlib.import_module("cpsm._build_stamp")
-        return str(getattr(stamp, "COMMIT", "") or "")
+        return str(getattr(_build_stamp, "COMMIT", "") or "")
     except Exception:
         return ""
 
