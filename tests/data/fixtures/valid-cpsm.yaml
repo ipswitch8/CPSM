@@ -1,0 +1,162 @@
+# valid-cpsm.yaml — CPSM fixture exercising every schema feature.
+# Used by test_repository.py for round-trip byte-identity tests.
+# Every field documented in §2.2 and §2.3 appears at least once.
+
+schema_version: 1
+
+settings:
+  default_multiplexer: tmux
+  default_terminal: auto
+  ssh_binary: auto
+  default_claude_options: "--resume"
+  default_ssh_options: "-o ConnectTimeout=10 -o ServerAliveInterval=30"
+  known_hosts_strict: true
+  status_poll_interval_ms: 3000
+  layout_conflict_default: move
+  layout_preserve_on_remove: true
+  log_level: INFO
+
+ssh_keys:
+  - id: key-prod-2026
+    name: "Production ed25519"
+    type: ed25519
+    private_path: ~/.ssh/id_ed25519_prod
+    public_path: ~/.ssh/id_ed25519_prod.pub
+    passphrase_ref: keyring://cpsm/key-prod-2026
+    created_at: 2026-01-15T10:00:00Z
+    deployments:
+      - connection_id: web01
+        deployed_at: 2026-01-15T10:05:00Z
+        method: ssh-copy-id
+
+connections:
+  # launch_profile: claude-remote — all required + optional fields
+  - id: web01
+    name: "WebApp-Frontend (prod)"
+    launch_profile: claude-remote
+    host: dev.example.com
+    port: 22
+    user: ubuntu
+    sudo_user: claude-user
+    identity_file_ref: key-prod-2026
+    jump_host: bastion
+    project_folder: /opt/webapp/frontend
+    claude_options: "--resume"
+    env:
+      TERM: xterm-256color
+      LANG: en_US.UTF-8
+    pre_commands: []
+    post_commands: []
+    keepalive_interval_s: 60
+    connection_timeout_s: 15
+    auto_reconnect: false
+    auto_reconnect_on_clean_exit: false
+    reconnect_backoff_ms: [1000, 3000, 10000, 30000]
+    reconnect_max_attempts: 0
+    tags: [production, web]
+    notes: "Primary webapp frontend on dev host."
+
+  # bastion — jump host for web01; itself uses ssh-shell
+  - id: bastion
+    name: "Bastion host"
+    launch_profile: ssh-shell
+    host: bastion.example.com
+    port: 22
+    user: admin
+    identity_file_ref: key-prod-2026
+    project_folder: /var/log
+
+  # launch_profile: claude-local — all required + optional, forbidden fields absent
+  - id: dotfiles
+    name: "Dotfiles (local)"
+    launch_profile: claude-local
+    project_folder: ~/projects/dotfiles
+    claude_options: "--resume"
+
+  # launch_profile: ssh-shell — full example
+  - id: bastion-shell
+    name: "Bastion shell"
+    launch_profile: ssh-shell
+    host: bastion.example.com
+    port: 22
+    user: admin
+    identity_file_ref: key-prod-2026
+    project_folder: /var/log
+
+  # launch_profile: local-shell — required project_folder only
+  - id: scratch
+    name: "Scratch shell"
+    launch_profile: local-shell
+    project_folder: ~/scratch
+
+  # launch_profile: custom — custom_template_id required, optional fields set
+  - id: nspawn-dev
+    name: "Dev container"
+    launch_profile: custom
+    custom_template_id: tpl-nspawn-machinectl
+    project_folder: /var/lib/machines/dev/srv/app
+    env:
+      MACHINE: dev
+
+groups:
+  # project-1: exercises multi-group membership (web01 and dotfiles appear here)
+  - id: project-1
+    name: "Project 1"
+    color: "#3b82f6"
+    members: [web01, dotfiles, bastion-shell]
+    launch_order: sequential
+    launch_delay_ms: 250
+    default_layout_id: layout-project-1
+    isolation: shared
+    layout_conflict: move
+    auto_attach: true
+
+  # project-2: web01 appears in two groups — test that FK validation passes
+  - id: project-2
+    name: "Project 2"
+    color: "#f59e0b"
+    members: [web01, scratch]
+    launch_order: parallel
+    launch_delay_ms: 0
+    default_layout_id: null
+    isolation: per-group
+    layout_conflict: keep
+    auto_attach: false
+
+screen_layouts:
+  - id: layout-project-1
+    name: "Project 1 — dual screen"
+    inherits_from: null
+    monitors:
+      - identifier: "DELL-U2723QE-Screen1"
+        monitor_index_hint: 0
+        viewports:
+          - id: vp-p1-main
+            geometry_pct: {x: 0, y: 0, w: 60, h: 100}
+            tmux_window_name: "p1-main"
+            tmux_layout: custom
+            custom_layout_string: "f8b6,238x60,0,0{..."
+            panes:
+              - connection_id: web01
+              # null slot — intentionally preserved (§2.5 null connection_id)
+              - connection_id: null
+              - connection_id: dotfiles
+              - connection_id: bastion-shell
+          - id: vp-p1-side
+            geometry_pct: {x: 60, y: 0, w: 40, h: 100}
+            tmux_window_name: "p1-side"
+            tmux_layout: tiled
+            panes:
+              - connection_id: scratch
+
+scenes:
+  - id: workday
+    groups: [project-1, project-2]
+    on_conflict: error
+
+launch_templates:
+  - id: tpl-nspawn-machinectl
+    description: "Enter a systemd-nspawn container."
+    bash: |
+      machinectl shell {{user|root}}@{{env.MACHINE}} /bin/bash -c \
+        "cd {{project_folder}} && exec bash -il"
