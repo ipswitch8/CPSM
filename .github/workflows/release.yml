@@ -90,6 +90,23 @@ jobs:
     name: Build Windows MSI
     runs-on: windows-2022
 
+    # DISABLED. The MSI has never built successfully, so releasing from this
+    # job would attach nothing and mark every release run red.
+    #
+    # The WiX source is kept, not deleted: packaging/wix/cpsm.wxs has since
+    # been corrected for the errors that were blocking it (an unresolved
+    # WixUI_ProgressOnly reference, then ICE38/ICE64 per-user-install
+    # defects). What is not known is whether the heat.exe-generated component
+    # fragment hits ICE38 for the same reason MainExecutable did — that needs
+    # someone iterating against a real Windows build, not a tag push at a
+    # time against a public repo.
+    #
+    # To re-enable: set the repository variable ENABLE_WINDOWS_MSI to "true"
+    #   gh variable set ENABLE_WINDOWS_MSI --body true --repo <owner>/<repo>
+    # Leaving it unset skips the job cleanly; the release still publishes the
+    # Linux assets.
+    if: ${{ vars.ENABLE_WINDOWS_MSI == 'true' }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
